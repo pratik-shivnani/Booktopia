@@ -37,6 +37,16 @@ class EpubFileDao extends DatabaseAccessor<AppDatabase> with _$EpubFileDaoMixin 
     );
   }
 
+  Future<void> updateReaderSettings(int id, {int? fontSize, String? fontFamily, int? readerTheme, double? lineHeight}) {
+    final companion = EpubFilesCompanion(
+      fontSize: fontSize != null ? Value(fontSize) : const Value.absent(),
+      fontFamily: fontFamily != null ? Value(fontFamily) : const Value.absent(),
+      readerTheme: readerTheme != null ? Value(readerTheme) : const Value.absent(),
+      lineHeight: lineHeight != null ? Value(lineHeight) : const Value.absent(),
+    );
+    return (update(epubFiles)..where((e) => e.id.equals(id))).write(companion);
+  }
+
   Future<int> deleteByBookId(int bookId) {
     return (delete(epubFiles)..where((e) => e.bookId.equals(bookId))).go();
   }

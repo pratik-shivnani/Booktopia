@@ -8,6 +8,7 @@ import '../data/database/daos/world_area_dao.dart';
 import '../data/database/daos/book_image_dao.dart';
 import '../data/database/daos/mindmap_dao.dart';
 import '../data/database/daos/epub_file_dao.dart';
+import '../data/database/daos/reader_bookmark_dao.dart';
 import '../data/repositories/book_repository.dart';
 import '../data/repositories/character_repository.dart';
 import '../data/repositories/note_repository.dart';
@@ -24,6 +25,7 @@ import '../domain/models/book_image.dart' as domain_img;
 import '../domain/models/mindmap_node.dart' as domain_node;
 import '../domain/models/mindmap_edge.dart' as domain_edge;
 import '../domain/models/epub_data.dart' as domain_epub;
+import '../domain/models/epub_data.dart' show ReaderBookmarkData;
 
 // Database
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -59,6 +61,10 @@ final mindmapDaoProvider = Provider<MindmapDao>((ref) {
 
 final epubFileDaoProvider = Provider<EpubFileDao>((ref) {
   return EpubFileDao(ref.watch(databaseProvider));
+});
+
+final readerBookmarkDaoProvider = Provider<ReaderBookmarkDao>((ref) {
+  return ReaderBookmarkDao(ref.watch(databaseProvider));
 });
 
 // Repositories
@@ -155,4 +161,21 @@ final mindmapEdgesByBookProvider =
 final epubByBookProvider =
     StreamProvider.family<domain_epub.EpubData?, int>((ref, bookId) {
   return ref.watch(epubRepositoryProvider).watchByBookId(bookId);
+});
+
+// Reader bookmark stream providers
+final readerBookmarksByBookProvider =
+    StreamProvider.family<List<ReaderBookmarkData>, int>((ref, bookId) {
+  final dao = ref.watch(readerBookmarkDaoProvider);
+  return dao.watchByBookId(bookId).map(
+    (rows) => rows.map((r) => ReaderBookmarkData(
+      id: r.id,
+      bookId: r.bookId,
+      chapterIndex: r.chapterIndex,
+      scrollPosition: r.scrollPosition,
+      label: r.label,
+      chapterTitle: r.chapterTitle,
+      createdAt: r.createdAt,
+    )).toList(),
+  );
 });

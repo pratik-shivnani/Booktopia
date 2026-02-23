@@ -1,12 +1,16 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
+import '../../data/database/app_database.dart' show ReaderBookmarksCompanion;
 import '../../data/services/epub_service.dart';
 import '../../domain/models/epub_data.dart';
 import '../../providers/providers.dart';
+import 'reader_settings_sheet.dart';
 
 class EpubReaderScreen extends ConsumerStatefulWidget {
   final int bookId;
@@ -25,8 +29,15 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   String? _error;
   InAppWebViewController? _webViewController;
   bool _tocOpen = false;
+  bool _bookmarksOpen = false;
   Timer? _saveTimer;
   double _currentScroll = 0.0;
+
+  // Reader settings (kept in sync with DB)
+  int _fontSize = 18;
+  String _fontFamily = 'serif';
+  ReaderTheme _readerTheme = ReaderTheme.light;
+  double _lineHeight = 1.7;
 
   @override
   void initState() {
@@ -55,6 +66,10 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
       _epubData = epubData;
       _currentChapter = epubData.currentChapterIndex;
       _currentScroll = epubData.scrollPosition;
+      _fontSize = epubData.fontSize;
+      _fontFamily = epubData.fontFamily;
+      _readerTheme = epubData.readerTheme;
+      _lineHeight = epubData.lineHeight;
 
       final service = ref.read(epubServiceProvider);
       final parsed = await service.parseAndExtract(epubData.filePath);
@@ -91,21 +106,59 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     _savePosition();
   }
 
-  String _wrapWithReaderStyles(String html) {
-    // Inject reader-friendly CSS
-    const readerCss = '''
-    <style id="booktopia-reader-style">
+  // --- Theme CSS generation ---
+
+  String _cssFontStack() {
+    switch (_fontFamily) {
+      case 'sans-serif':
+        return "'-apple-system', 'Helvetica Neue', 'Arial', sans-serif";
+      case 'monospace':
+        return "'Courier New', 'Courier', monospace";
+      case 'system-ui':
+        return 'system-ui, sans-serif';
+      case 'serif':
+      default:
+        return "'Georgia', 'Noto Serif', serif";
+    }
+  }
+
+  String _cssColors() {
+    switch (_readerTheme) {
+      case ReaderTheme.dark:
+        return 'color: #CCCCCC; background: #1A1A1A;';
+      case ReaderTheme.sepia:
+        return 'color: #5B4636; background: #F5E6C8;';
+      case ReaderTheme.light:
+      default:
+        return 'color: #222222; background: #FAFAFA;';
+    }
+  }
+
+  String _cssLinkColor() {
+    switch (_readerTheme) {
+      case ReaderTheme.dark:
+        return '#B39DDB';
+      case ReaderTheme.sepia:
+        return '#8B6914';
+      case ReaderTheme.light:
+      default:
+        return '#6750A4';
+    }
+  }
+
+  String _buildReaderCss() {
+    return '''
       body {
-        font-family: 'Georgia', 'Noto Serif', serif;
-        font-size: 18px;
-        line-height: 1.7;
-        color: #222;
-        background: #FAFAFA;
+        font-family: ${_cssFontStack()};
+        font-size: ${_fontSize}px;
+        line-height: $_lineHeight;
+        ${_cssColors()}
         padding: 16px 20px 80px 20px;
         margin: 0;
         word-wrap: break-word;
         overflow-wrap: break-word;
         -webkit-text-size-adjust: 100%;
+        transition: background 0.3s, color 0.3s;
       }
       img {
         max-width: 100%;
@@ -119,8 +172,15 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
         margin-bottom: 0.8em;
       }
       a {
-        color: #6750A4;
+        color: ${_cssLinkColor()};
       }
+    ''';
+  }
+
+  String _wrapWithReaderStyles(String html) {
+    final readerCss = '''
+    <style id="booktopia-reader-style">
+      ${_buildReaderCss()}
     </style>
     <script>
       window.addEventListener('scroll', function() {
@@ -128,16 +188,46 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
         if (isNaN(scrollPos)) scrollPos = 0;
         window.flutter_inappwebview.callHandler('onScroll', scrollPos);
       });
+      function updateReaderStyle(css) {
+        var el = document.getElementById('booktopia-reader-style');
+        if (el) el.textContent = css;
+      }
     </script>
     ''';
 
-    // Inject before </head> or at the start
     if (html.contains('</head>')) {
       return html.replaceFirst('</head>', '$readerCss</head>');
     } else if (html.contains('<body')) {
       return html.replaceFirst('<body', '$readerCss<body');
     } else {
       return '<html><head>$readerCss</head><body>$html</body></html>';
+    }
+  }
+
+  /// Update CSS in the WebView without reloading the chapter.
+  Future<void> _applyStyleUpdate() async {
+    final css = _buildReaderCss().replaceAll('\n', ' ').replaceAll("'", "\\'");
+    await _webViewController?.evaluateJavascript(source: "updateReaderStyle('$css');");
+  }
+
+  void _onSettingsChanged(EpubData updated) {
+    setState(() {
+      _fontSize = updated.fontSize;
+      _fontFamily = updated.fontFamily;
+      _readerTheme = updated.readerTheme;
+      _lineHeight = updated.lineHeight;
+    });
+    _applyStyleUpdate();
+
+    // Persist
+    if (_epubData?.id != null) {
+      ref.read(epubRepositoryProvider).updateReaderSettings(
+        _epubData!.id!,
+        fontSize: _fontSize,
+        fontFamily: _fontFamily,
+        readerTheme: _readerTheme,
+        lineHeight: _lineHeight,
+      );
     }
   }
 
@@ -166,6 +256,23 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   void _debounceSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 3), _savePosition);
+  }
+
+  Future<void> _addBookmark() async {
+    final chapterTitle = _getChapterTitle();
+    final dao = ref.read(readerBookmarkDaoProvider);
+    await dao.insertBookmark(ReaderBookmarksCompanion(
+      bookId: Value(widget.bookId),
+      chapterIndex: Value(_currentChapter),
+      scrollPosition: Value(_currentScroll),
+      chapterTitle: Value(chapterTitle),
+      createdAt: Value(DateTime.now()),
+    ));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Bookmarked: $chapterTitle'), duration: const Duration(seconds: 2)),
+      );
+    }
   }
 
   @override
@@ -219,9 +326,30 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.bookmark_add_outlined),
+            tooltip: 'Add bookmark',
+            onPressed: _addBookmark,
+          ),
+          IconButton(
+            icon: const Icon(Icons.bookmarks_outlined),
+            tooltip: 'Bookmarks',
+            onPressed: () => setState(() {
+              _bookmarksOpen = !_bookmarksOpen;
+              _tocOpen = false;
+            }),
+          ),
+          IconButton(
             icon: const Icon(Icons.list),
             tooltip: 'Table of Contents',
-            onPressed: () => setState(() => _tocOpen = !_tocOpen),
+            onPressed: () => setState(() {
+              _tocOpen = !_tocOpen;
+              _bookmarksOpen = false;
+            }),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Reader settings',
+            onPressed: _showSettings,
           ),
         ],
       ),
@@ -261,7 +389,7 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
                 await Future.delayed(const Duration(milliseconds: 200));
                 await controller.evaluateJavascript(source: '''
                   var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                  window.scrollTo(0, maxScroll * ${_currentScroll});
+                  window.scrollTo(0, maxScroll * $_currentScroll);
                 ''');
               }
             },
@@ -269,9 +397,28 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
 
           // TOC overlay
           if (_tocOpen) _buildTocDrawer(colorScheme),
+          // Bookmarks overlay
+          if (_bookmarksOpen) _buildBookmarksDrawer(colorScheme),
         ],
       ),
       bottomNavigationBar: _buildBottomBar(colorScheme),
+    );
+  }
+
+  void _showSettings() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => ReaderSettingsSheet(
+        epubData: _epubData!.copyWith(
+          fontSize: _fontSize,
+          fontFamily: _fontFamily,
+          readerTheme: _readerTheme,
+          lineHeight: _lineHeight,
+        ),
+        onChanged: _onSettingsChanged,
+      ),
     );
   }
 
@@ -288,7 +435,6 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Progress bar
             LinearProgressIndicator(
               value: progress,
               minHeight: 3,
@@ -326,6 +472,96 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookmarksDrawer(ColorScheme colorScheme) {
+    final bookmarksAsync = ref.watch(readerBookmarksByBookProvider(widget.bookId));
+
+    return GestureDetector(
+      onTap: () => setState(() => _bookmarksOpen = false),
+      child: Container(
+        color: Colors.black54,
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            onTap: () {},
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.75,
+              color: colorScheme.surface,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.bookmarks, color: colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text('Bookmarks', style: Theme.of(context).textTheme.titleMedium),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: bookmarksAsync.when(
+                      data: (bookmarks) {
+                        if (bookmarks.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.bookmark_border, size: 40, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'No bookmarks yet.\nTap the bookmark icon to add one.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return ListView.builder(
+                          itemCount: bookmarks.length,
+                          itemBuilder: (context, i) {
+                            final bm = bookmarks[i];
+                            final dateStr = DateFormat.yMMMd().add_jm().format(bm.createdAt);
+                            return ListTile(
+                              dense: true,
+                              leading: Icon(Icons.bookmark, color: colorScheme.primary, size: 20),
+                              title: Text(
+                                bm.chapterTitle ?? 'Chapter ${bm.chapterIndex + 1}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(dateStr, style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant)),
+                              trailing: IconButton(
+                                icon: Icon(Icons.delete_outline, size: 18, color: colorScheme.error),
+                                onPressed: () {
+                                  ref.read(readerBookmarkDaoProvider).deleteBookmark(bm.id!);
+                                },
+                              ),
+                              onTap: () {
+                                _currentScroll = bm.scrollPosition;
+                                _loadChapter(bm.chapterIndex);
+                                setState(() => _bookmarksOpen = false);
+                              },
+                            );
+                          },
+                        );
+                      },
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (e, _) => Center(child: Text('Error: $e')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -391,7 +627,6 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   }
 
   Widget _buildTocItem(EpubChapter chapter, ColorScheme colorScheme) {
-    // Find the spine index for this chapter file
     final spineIndex = _parsedEpub?.spineFiles.indexWhere(
       (f) => f.contains(chapter.htmlFileName) || chapter.htmlFileName.contains(f),
     ) ?? -1;
@@ -432,7 +667,6 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   String _getChapterTitle() {
     if (_parsedEpub == null) return 'Reader';
 
-    // Try to find the TOC entry for the current chapter
     final currentFile = _parsedEpub!.spineFiles[_currentChapter];
     for (final ch in _parsedEpub!.tableOfContents) {
       if (currentFile.contains(ch.htmlFileName) || ch.htmlFileName.contains(currentFile)) {

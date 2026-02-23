@@ -3216,6 +3216,54 @@ class $EpubFilesTable extends EpubFiles
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _fontSizeMeta = const VerificationMeta(
+    'fontSize',
+  );
+  @override
+  late final GeneratedColumn<int> fontSize = GeneratedColumn<int>(
+    'font_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(18),
+  );
+  static const VerificationMeta _fontFamilyMeta = const VerificationMeta(
+    'fontFamily',
+  );
+  @override
+  late final GeneratedColumn<String> fontFamily = GeneratedColumn<String>(
+    'font_family',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('serif'),
+  );
+  static const VerificationMeta _readerThemeMeta = const VerificationMeta(
+    'readerTheme',
+  );
+  @override
+  late final GeneratedColumn<int> readerTheme = GeneratedColumn<int>(
+    'reader_theme',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lineHeightMeta = const VerificationMeta(
+    'lineHeight',
+  );
+  @override
+  late final GeneratedColumn<double> lineHeight = GeneratedColumn<double>(
+    'line_height',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.7),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3224,6 +3272,10 @@ class $EpubFilesTable extends EpubFiles
     currentChapterIndex,
     scrollPosition,
     lastReadAt,
+    fontSize,
+    fontFamily,
+    readerTheme,
+    lineHeight,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3283,6 +3335,33 @@ class $EpubFilesTable extends EpubFiles
         ),
       );
     }
+    if (data.containsKey('font_size')) {
+      context.handle(
+        _fontSizeMeta,
+        fontSize.isAcceptableOrUnknown(data['font_size']!, _fontSizeMeta),
+      );
+    }
+    if (data.containsKey('font_family')) {
+      context.handle(
+        _fontFamilyMeta,
+        fontFamily.isAcceptableOrUnknown(data['font_family']!, _fontFamilyMeta),
+      );
+    }
+    if (data.containsKey('reader_theme')) {
+      context.handle(
+        _readerThemeMeta,
+        readerTheme.isAcceptableOrUnknown(
+          data['reader_theme']!,
+          _readerThemeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('line_height')) {
+      context.handle(
+        _lineHeightMeta,
+        lineHeight.isAcceptableOrUnknown(data['line_height']!, _lineHeightMeta),
+      );
+    }
     return context;
   }
 
@@ -3316,6 +3395,22 @@ class $EpubFilesTable extends EpubFiles
         DriftSqlType.dateTime,
         data['${effectivePrefix}last_read_at'],
       ),
+      fontSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}font_size'],
+      )!,
+      fontFamily: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}font_family'],
+      )!,
+      readerTheme: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reader_theme'],
+      )!,
+      lineHeight: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}line_height'],
+      )!,
     );
   }
 
@@ -3332,6 +3427,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
   final int currentChapterIndex;
   final double scrollPosition;
   final DateTime? lastReadAt;
+  final int fontSize;
+  final String fontFamily;
+  final int readerTheme;
+  final double lineHeight;
   const EpubFile({
     required this.id,
     required this.bookId,
@@ -3339,6 +3438,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
     required this.currentChapterIndex,
     required this.scrollPosition,
     this.lastReadAt,
+    required this.fontSize,
+    required this.fontFamily,
+    required this.readerTheme,
+    required this.lineHeight,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3351,6 +3454,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
     if (!nullToAbsent || lastReadAt != null) {
       map['last_read_at'] = Variable<DateTime>(lastReadAt);
     }
+    map['font_size'] = Variable<int>(fontSize);
+    map['font_family'] = Variable<String>(fontFamily);
+    map['reader_theme'] = Variable<int>(readerTheme);
+    map['line_height'] = Variable<double>(lineHeight);
     return map;
   }
 
@@ -3364,6 +3471,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
       lastReadAt: lastReadAt == null && nullToAbsent
           ? const Value.absent()
           : Value(lastReadAt),
+      fontSize: Value(fontSize),
+      fontFamily: Value(fontFamily),
+      readerTheme: Value(readerTheme),
+      lineHeight: Value(lineHeight),
     );
   }
 
@@ -3381,6 +3492,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
       ),
       scrollPosition: serializer.fromJson<double>(json['scrollPosition']),
       lastReadAt: serializer.fromJson<DateTime?>(json['lastReadAt']),
+      fontSize: serializer.fromJson<int>(json['fontSize']),
+      fontFamily: serializer.fromJson<String>(json['fontFamily']),
+      readerTheme: serializer.fromJson<int>(json['readerTheme']),
+      lineHeight: serializer.fromJson<double>(json['lineHeight']),
     );
   }
   @override
@@ -3393,6 +3508,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
       'currentChapterIndex': serializer.toJson<int>(currentChapterIndex),
       'scrollPosition': serializer.toJson<double>(scrollPosition),
       'lastReadAt': serializer.toJson<DateTime?>(lastReadAt),
+      'fontSize': serializer.toJson<int>(fontSize),
+      'fontFamily': serializer.toJson<String>(fontFamily),
+      'readerTheme': serializer.toJson<int>(readerTheme),
+      'lineHeight': serializer.toJson<double>(lineHeight),
     };
   }
 
@@ -3403,6 +3522,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
     int? currentChapterIndex,
     double? scrollPosition,
     Value<DateTime?> lastReadAt = const Value.absent(),
+    int? fontSize,
+    String? fontFamily,
+    int? readerTheme,
+    double? lineHeight,
   }) => EpubFile(
     id: id ?? this.id,
     bookId: bookId ?? this.bookId,
@@ -3410,6 +3533,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
     currentChapterIndex: currentChapterIndex ?? this.currentChapterIndex,
     scrollPosition: scrollPosition ?? this.scrollPosition,
     lastReadAt: lastReadAt.present ? lastReadAt.value : this.lastReadAt,
+    fontSize: fontSize ?? this.fontSize,
+    fontFamily: fontFamily ?? this.fontFamily,
+    readerTheme: readerTheme ?? this.readerTheme,
+    lineHeight: lineHeight ?? this.lineHeight,
   );
   EpubFile copyWithCompanion(EpubFilesCompanion data) {
     return EpubFile(
@@ -3425,6 +3552,16 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
       lastReadAt: data.lastReadAt.present
           ? data.lastReadAt.value
           : this.lastReadAt,
+      fontSize: data.fontSize.present ? data.fontSize.value : this.fontSize,
+      fontFamily: data.fontFamily.present
+          ? data.fontFamily.value
+          : this.fontFamily,
+      readerTheme: data.readerTheme.present
+          ? data.readerTheme.value
+          : this.readerTheme,
+      lineHeight: data.lineHeight.present
+          ? data.lineHeight.value
+          : this.lineHeight,
     );
   }
 
@@ -3436,7 +3573,11 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
           ..write('filePath: $filePath, ')
           ..write('currentChapterIndex: $currentChapterIndex, ')
           ..write('scrollPosition: $scrollPosition, ')
-          ..write('lastReadAt: $lastReadAt')
+          ..write('lastReadAt: $lastReadAt, ')
+          ..write('fontSize: $fontSize, ')
+          ..write('fontFamily: $fontFamily, ')
+          ..write('readerTheme: $readerTheme, ')
+          ..write('lineHeight: $lineHeight')
           ..write(')'))
         .toString();
   }
@@ -3449,6 +3590,10 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
     currentChapterIndex,
     scrollPosition,
     lastReadAt,
+    fontSize,
+    fontFamily,
+    readerTheme,
+    lineHeight,
   );
   @override
   bool operator ==(Object other) =>
@@ -3459,7 +3604,11 @@ class EpubFile extends DataClass implements Insertable<EpubFile> {
           other.filePath == this.filePath &&
           other.currentChapterIndex == this.currentChapterIndex &&
           other.scrollPosition == this.scrollPosition &&
-          other.lastReadAt == this.lastReadAt);
+          other.lastReadAt == this.lastReadAt &&
+          other.fontSize == this.fontSize &&
+          other.fontFamily == this.fontFamily &&
+          other.readerTheme == this.readerTheme &&
+          other.lineHeight == this.lineHeight);
 }
 
 class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
@@ -3469,6 +3618,10 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
   final Value<int> currentChapterIndex;
   final Value<double> scrollPosition;
   final Value<DateTime?> lastReadAt;
+  final Value<int> fontSize;
+  final Value<String> fontFamily;
+  final Value<int> readerTheme;
+  final Value<double> lineHeight;
   const EpubFilesCompanion({
     this.id = const Value.absent(),
     this.bookId = const Value.absent(),
@@ -3476,6 +3629,10 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
     this.currentChapterIndex = const Value.absent(),
     this.scrollPosition = const Value.absent(),
     this.lastReadAt = const Value.absent(),
+    this.fontSize = const Value.absent(),
+    this.fontFamily = const Value.absent(),
+    this.readerTheme = const Value.absent(),
+    this.lineHeight = const Value.absent(),
   });
   EpubFilesCompanion.insert({
     this.id = const Value.absent(),
@@ -3484,6 +3641,10 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
     this.currentChapterIndex = const Value.absent(),
     this.scrollPosition = const Value.absent(),
     this.lastReadAt = const Value.absent(),
+    this.fontSize = const Value.absent(),
+    this.fontFamily = const Value.absent(),
+    this.readerTheme = const Value.absent(),
+    this.lineHeight = const Value.absent(),
   }) : bookId = Value(bookId),
        filePath = Value(filePath);
   static Insertable<EpubFile> custom({
@@ -3493,6 +3654,10 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
     Expression<int>? currentChapterIndex,
     Expression<double>? scrollPosition,
     Expression<DateTime>? lastReadAt,
+    Expression<int>? fontSize,
+    Expression<String>? fontFamily,
+    Expression<int>? readerTheme,
+    Expression<double>? lineHeight,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3502,6 +3667,10 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
         'current_chapter_index': currentChapterIndex,
       if (scrollPosition != null) 'scroll_position': scrollPosition,
       if (lastReadAt != null) 'last_read_at': lastReadAt,
+      if (fontSize != null) 'font_size': fontSize,
+      if (fontFamily != null) 'font_family': fontFamily,
+      if (readerTheme != null) 'reader_theme': readerTheme,
+      if (lineHeight != null) 'line_height': lineHeight,
     });
   }
 
@@ -3512,6 +3681,10 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
     Value<int>? currentChapterIndex,
     Value<double>? scrollPosition,
     Value<DateTime?>? lastReadAt,
+    Value<int>? fontSize,
+    Value<String>? fontFamily,
+    Value<int>? readerTheme,
+    Value<double>? lineHeight,
   }) {
     return EpubFilesCompanion(
       id: id ?? this.id,
@@ -3520,6 +3693,10 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
       currentChapterIndex: currentChapterIndex ?? this.currentChapterIndex,
       scrollPosition: scrollPosition ?? this.scrollPosition,
       lastReadAt: lastReadAt ?? this.lastReadAt,
+      fontSize: fontSize ?? this.fontSize,
+      fontFamily: fontFamily ?? this.fontFamily,
+      readerTheme: readerTheme ?? this.readerTheme,
+      lineHeight: lineHeight ?? this.lineHeight,
     );
   }
 
@@ -3544,6 +3721,18 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
     if (lastReadAt.present) {
       map['last_read_at'] = Variable<DateTime>(lastReadAt.value);
     }
+    if (fontSize.present) {
+      map['font_size'] = Variable<int>(fontSize.value);
+    }
+    if (fontFamily.present) {
+      map['font_family'] = Variable<String>(fontFamily.value);
+    }
+    if (readerTheme.present) {
+      map['reader_theme'] = Variable<int>(readerTheme.value);
+    }
+    if (lineHeight.present) {
+      map['line_height'] = Variable<double>(lineHeight.value);
+    }
     return map;
   }
 
@@ -3555,7 +3744,479 @@ class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
           ..write('filePath: $filePath, ')
           ..write('currentChapterIndex: $currentChapterIndex, ')
           ..write('scrollPosition: $scrollPosition, ')
-          ..write('lastReadAt: $lastReadAt')
+          ..write('lastReadAt: $lastReadAt, ')
+          ..write('fontSize: $fontSize, ')
+          ..write('fontFamily: $fontFamily, ')
+          ..write('readerTheme: $readerTheme, ')
+          ..write('lineHeight: $lineHeight')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReaderBookmarksTable extends ReaderBookmarks
+    with TableInfo<$ReaderBookmarksTable, ReaderBookmark> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReaderBookmarksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
+    'book_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES books (id)',
+    ),
+  );
+  static const VerificationMeta _chapterIndexMeta = const VerificationMeta(
+    'chapterIndex',
+  );
+  @override
+  late final GeneratedColumn<int> chapterIndex = GeneratedColumn<int>(
+    'chapter_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scrollPositionMeta = const VerificationMeta(
+    'scrollPosition',
+  );
+  @override
+  late final GeneratedColumn<double> scrollPosition = GeneratedColumn<double>(
+    'scroll_position',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _chapterTitleMeta = const VerificationMeta(
+    'chapterTitle',
+  );
+  @override
+  late final GeneratedColumn<String> chapterTitle = GeneratedColumn<String>(
+    'chapter_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    bookId,
+    chapterIndex,
+    scrollPosition,
+    label,
+    chapterTitle,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reader_bookmarks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReaderBookmark> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('book_id')) {
+      context.handle(
+        _bookIdMeta,
+        bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('chapter_index')) {
+      context.handle(
+        _chapterIndexMeta,
+        chapterIndex.isAcceptableOrUnknown(
+          data['chapter_index']!,
+          _chapterIndexMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_chapterIndexMeta);
+    }
+    if (data.containsKey('scroll_position')) {
+      context.handle(
+        _scrollPositionMeta,
+        scrollPosition.isAcceptableOrUnknown(
+          data['scroll_position']!,
+          _scrollPositionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('chapter_title')) {
+      context.handle(
+        _chapterTitleMeta,
+        chapterTitle.isAcceptableOrUnknown(
+          data['chapter_title']!,
+          _chapterTitleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReaderBookmark map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReaderBookmark(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      bookId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}book_id'],
+      )!,
+      chapterIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}chapter_index'],
+      )!,
+      scrollPosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}scroll_position'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
+      chapterTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chapter_title'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReaderBookmarksTable createAlias(String alias) {
+    return $ReaderBookmarksTable(attachedDatabase, alias);
+  }
+}
+
+class ReaderBookmark extends DataClass implements Insertable<ReaderBookmark> {
+  final int id;
+  final int bookId;
+  final int chapterIndex;
+  final double scrollPosition;
+  final String? label;
+  final String? chapterTitle;
+  final DateTime createdAt;
+  const ReaderBookmark({
+    required this.id,
+    required this.bookId,
+    required this.chapterIndex,
+    required this.scrollPosition,
+    this.label,
+    this.chapterTitle,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['book_id'] = Variable<int>(bookId);
+    map['chapter_index'] = Variable<int>(chapterIndex);
+    map['scroll_position'] = Variable<double>(scrollPosition);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    if (!nullToAbsent || chapterTitle != null) {
+      map['chapter_title'] = Variable<String>(chapterTitle);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ReaderBookmarksCompanion toCompanion(bool nullToAbsent) {
+    return ReaderBookmarksCompanion(
+      id: Value(id),
+      bookId: Value(bookId),
+      chapterIndex: Value(chapterIndex),
+      scrollPosition: Value(scrollPosition),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
+      chapterTitle: chapterTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(chapterTitle),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ReaderBookmark.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReaderBookmark(
+      id: serializer.fromJson<int>(json['id']),
+      bookId: serializer.fromJson<int>(json['bookId']),
+      chapterIndex: serializer.fromJson<int>(json['chapterIndex']),
+      scrollPosition: serializer.fromJson<double>(json['scrollPosition']),
+      label: serializer.fromJson<String?>(json['label']),
+      chapterTitle: serializer.fromJson<String?>(json['chapterTitle']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'bookId': serializer.toJson<int>(bookId),
+      'chapterIndex': serializer.toJson<int>(chapterIndex),
+      'scrollPosition': serializer.toJson<double>(scrollPosition),
+      'label': serializer.toJson<String?>(label),
+      'chapterTitle': serializer.toJson<String?>(chapterTitle),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ReaderBookmark copyWith({
+    int? id,
+    int? bookId,
+    int? chapterIndex,
+    double? scrollPosition,
+    Value<String?> label = const Value.absent(),
+    Value<String?> chapterTitle = const Value.absent(),
+    DateTime? createdAt,
+  }) => ReaderBookmark(
+    id: id ?? this.id,
+    bookId: bookId ?? this.bookId,
+    chapterIndex: chapterIndex ?? this.chapterIndex,
+    scrollPosition: scrollPosition ?? this.scrollPosition,
+    label: label.present ? label.value : this.label,
+    chapterTitle: chapterTitle.present ? chapterTitle.value : this.chapterTitle,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ReaderBookmark copyWithCompanion(ReaderBookmarksCompanion data) {
+    return ReaderBookmark(
+      id: data.id.present ? data.id.value : this.id,
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      chapterIndex: data.chapterIndex.present
+          ? data.chapterIndex.value
+          : this.chapterIndex,
+      scrollPosition: data.scrollPosition.present
+          ? data.scrollPosition.value
+          : this.scrollPosition,
+      label: data.label.present ? data.label.value : this.label,
+      chapterTitle: data.chapterTitle.present
+          ? data.chapterTitle.value
+          : this.chapterTitle,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReaderBookmark(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('chapterIndex: $chapterIndex, ')
+          ..write('scrollPosition: $scrollPosition, ')
+          ..write('label: $label, ')
+          ..write('chapterTitle: $chapterTitle, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    bookId,
+    chapterIndex,
+    scrollPosition,
+    label,
+    chapterTitle,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReaderBookmark &&
+          other.id == this.id &&
+          other.bookId == this.bookId &&
+          other.chapterIndex == this.chapterIndex &&
+          other.scrollPosition == this.scrollPosition &&
+          other.label == this.label &&
+          other.chapterTitle == this.chapterTitle &&
+          other.createdAt == this.createdAt);
+}
+
+class ReaderBookmarksCompanion extends UpdateCompanion<ReaderBookmark> {
+  final Value<int> id;
+  final Value<int> bookId;
+  final Value<int> chapterIndex;
+  final Value<double> scrollPosition;
+  final Value<String?> label;
+  final Value<String?> chapterTitle;
+  final Value<DateTime> createdAt;
+  const ReaderBookmarksCompanion({
+    this.id = const Value.absent(),
+    this.bookId = const Value.absent(),
+    this.chapterIndex = const Value.absent(),
+    this.scrollPosition = const Value.absent(),
+    this.label = const Value.absent(),
+    this.chapterTitle = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ReaderBookmarksCompanion.insert({
+    this.id = const Value.absent(),
+    required int bookId,
+    required int chapterIndex,
+    this.scrollPosition = const Value.absent(),
+    this.label = const Value.absent(),
+    this.chapterTitle = const Value.absent(),
+    required DateTime createdAt,
+  }) : bookId = Value(bookId),
+       chapterIndex = Value(chapterIndex),
+       createdAt = Value(createdAt);
+  static Insertable<ReaderBookmark> custom({
+    Expression<int>? id,
+    Expression<int>? bookId,
+    Expression<int>? chapterIndex,
+    Expression<double>? scrollPosition,
+    Expression<String>? label,
+    Expression<String>? chapterTitle,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (bookId != null) 'book_id': bookId,
+      if (chapterIndex != null) 'chapter_index': chapterIndex,
+      if (scrollPosition != null) 'scroll_position': scrollPosition,
+      if (label != null) 'label': label,
+      if (chapterTitle != null) 'chapter_title': chapterTitle,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  ReaderBookmarksCompanion copyWith({
+    Value<int>? id,
+    Value<int>? bookId,
+    Value<int>? chapterIndex,
+    Value<double>? scrollPosition,
+    Value<String?>? label,
+    Value<String?>? chapterTitle,
+    Value<DateTime>? createdAt,
+  }) {
+    return ReaderBookmarksCompanion(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      chapterIndex: chapterIndex ?? this.chapterIndex,
+      scrollPosition: scrollPosition ?? this.scrollPosition,
+      label: label ?? this.label,
+      chapterTitle: chapterTitle ?? this.chapterTitle,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (bookId.present) {
+      map['book_id'] = Variable<int>(bookId.value);
+    }
+    if (chapterIndex.present) {
+      map['chapter_index'] = Variable<int>(chapterIndex.value);
+    }
+    if (scrollPosition.present) {
+      map['scroll_position'] = Variable<double>(scrollPosition.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (chapterTitle.present) {
+      map['chapter_title'] = Variable<String>(chapterTitle.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReaderBookmarksCompanion(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('chapterIndex: $chapterIndex, ')
+          ..write('scrollPosition: $scrollPosition, ')
+          ..write('label: $label, ')
+          ..write('chapterTitle: $chapterTitle, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
@@ -3572,6 +4233,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $MindmapNodesTable mindmapNodes = $MindmapNodesTable(this);
   late final $MindmapEdgesTable mindmapEdges = $MindmapEdgesTable(this);
   late final $EpubFilesTable epubFiles = $EpubFilesTable(this);
+  late final $ReaderBookmarksTable readerBookmarks = $ReaderBookmarksTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3585,6 +4249,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     mindmapNodes,
     mindmapEdges,
     epubFiles,
+    readerBookmarks,
   ];
 }
 
@@ -3745,6 +4410,26 @@ final class $$BooksTableReferences
     ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_epubFilesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$ReaderBookmarksTable, List<ReaderBookmark>>
+  _readerBookmarksRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.readerBookmarks,
+    aliasName: $_aliasNameGenerator(db.books.id, db.readerBookmarks.bookId),
+  );
+
+  $$ReaderBookmarksTableProcessedTableManager get readerBookmarksRefs {
+    final manager = $$ReaderBookmarksTableTableManager(
+      $_db,
+      $_db.readerBookmarks,
+    ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _readerBookmarksRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3985,6 +4670,31 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
           }) => $$EpubFilesTableFilterComposer(
             $db: $db,
             $table: $db.epubFiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> readerBookmarksRefs(
+    Expression<bool> Function($$ReaderBookmarksTableFilterComposer f) f,
+  ) {
+    final $$ReaderBookmarksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.readerBookmarks,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReaderBookmarksTableFilterComposer(
+            $db: $db,
+            $table: $db.readerBookmarks,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4292,6 +5002,31 @@ class $$BooksTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> readerBookmarksRefs<T extends Object>(
+    Expression<T> Function($$ReaderBookmarksTableAnnotationComposer a) f,
+  ) {
+    final $$ReaderBookmarksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.readerBookmarks,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReaderBookmarksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.readerBookmarks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BooksTableTableManager
@@ -4315,6 +5050,7 @@ class $$BooksTableTableManager
             bool mindmapNodesRefs,
             bool mindmapEdgesRefs,
             bool epubFilesRefs,
+            bool readerBookmarksRefs,
           })
         > {
   $$BooksTableTableManager(_$AppDatabase db, $BooksTable table)
@@ -4399,6 +5135,7 @@ class $$BooksTableTableManager
                 mindmapNodesRefs = false,
                 mindmapEdgesRefs = false,
                 epubFilesRefs = false,
+                readerBookmarksRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -4410,6 +5147,7 @@ class $$BooksTableTableManager
                     if (mindmapNodesRefs) db.mindmapNodes,
                     if (mindmapEdgesRefs) db.mindmapEdges,
                     if (epubFilesRefs) db.epubFiles,
+                    if (readerBookmarksRefs) db.readerBookmarks,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -4537,6 +5275,27 @@ class $$BooksTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (readerBookmarksRefs)
+                        await $_getPrefetchedData<
+                          Book,
+                          $BooksTable,
+                          ReaderBookmark
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BooksTableReferences
+                              ._readerBookmarksRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BooksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).readerBookmarksRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.bookId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -4565,6 +5324,7 @@ typedef $$BooksTableProcessedTableManager =
         bool mindmapNodesRefs,
         bool mindmapEdgesRefs,
         bool epubFilesRefs,
+        bool readerBookmarksRefs,
       })
     >;
 typedef $$CharactersTableCreateCompanionBuilder =
@@ -6939,6 +7699,10 @@ typedef $$EpubFilesTableCreateCompanionBuilder =
       Value<int> currentChapterIndex,
       Value<double> scrollPosition,
       Value<DateTime?> lastReadAt,
+      Value<int> fontSize,
+      Value<String> fontFamily,
+      Value<int> readerTheme,
+      Value<double> lineHeight,
     });
 typedef $$EpubFilesTableUpdateCompanionBuilder =
     EpubFilesCompanion Function({
@@ -6948,6 +7712,10 @@ typedef $$EpubFilesTableUpdateCompanionBuilder =
       Value<int> currentChapterIndex,
       Value<double> scrollPosition,
       Value<DateTime?> lastReadAt,
+      Value<int> fontSize,
+      Value<String> fontFamily,
+      Value<int> readerTheme,
+      Value<double> lineHeight,
     });
 
 final class $$EpubFilesTableReferences
@@ -7004,6 +7772,26 @@ class $$EpubFilesTableFilterComposer
 
   ColumnFilters<DateTime> get lastReadAt => $composableBuilder(
     column: $table.lastReadAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fontSize => $composableBuilder(
+    column: $table.fontSize,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fontFamily => $composableBuilder(
+    column: $table.fontFamily,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get readerTheme => $composableBuilder(
+    column: $table.readerTheme,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get lineHeight => $composableBuilder(
+    column: $table.lineHeight,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7065,6 +7853,26 @@ class $$EpubFilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get fontSize => $composableBuilder(
+    column: $table.fontSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fontFamily => $composableBuilder(
+    column: $table.fontFamily,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get readerTheme => $composableBuilder(
+    column: $table.readerTheme,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get lineHeight => $composableBuilder(
+    column: $table.lineHeight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$BooksTableOrderingComposer get bookId {
     final $$BooksTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -7116,6 +7924,24 @@ class $$EpubFilesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get lastReadAt => $composableBuilder(
     column: $table.lastReadAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get fontSize =>
+      $composableBuilder(column: $table.fontSize, builder: (column) => column);
+
+  GeneratedColumn<String> get fontFamily => $composableBuilder(
+    column: $table.fontFamily,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get readerTheme => $composableBuilder(
+    column: $table.readerTheme,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get lineHeight => $composableBuilder(
+    column: $table.lineHeight,
     builder: (column) => column,
   );
 
@@ -7177,6 +8003,10 @@ class $$EpubFilesTableTableManager
                 Value<int> currentChapterIndex = const Value.absent(),
                 Value<double> scrollPosition = const Value.absent(),
                 Value<DateTime?> lastReadAt = const Value.absent(),
+                Value<int> fontSize = const Value.absent(),
+                Value<String> fontFamily = const Value.absent(),
+                Value<int> readerTheme = const Value.absent(),
+                Value<double> lineHeight = const Value.absent(),
               }) => EpubFilesCompanion(
                 id: id,
                 bookId: bookId,
@@ -7184,6 +8014,10 @@ class $$EpubFilesTableTableManager
                 currentChapterIndex: currentChapterIndex,
                 scrollPosition: scrollPosition,
                 lastReadAt: lastReadAt,
+                fontSize: fontSize,
+                fontFamily: fontFamily,
+                readerTheme: readerTheme,
+                lineHeight: lineHeight,
               ),
           createCompanionCallback:
               ({
@@ -7193,6 +8027,10 @@ class $$EpubFilesTableTableManager
                 Value<int> currentChapterIndex = const Value.absent(),
                 Value<double> scrollPosition = const Value.absent(),
                 Value<DateTime?> lastReadAt = const Value.absent(),
+                Value<int> fontSize = const Value.absent(),
+                Value<String> fontFamily = const Value.absent(),
+                Value<int> readerTheme = const Value.absent(),
+                Value<double> lineHeight = const Value.absent(),
               }) => EpubFilesCompanion.insert(
                 id: id,
                 bookId: bookId,
@@ -7200,6 +8038,10 @@ class $$EpubFilesTableTableManager
                 currentChapterIndex: currentChapterIndex,
                 scrollPosition: scrollPosition,
                 lastReadAt: lastReadAt,
+                fontSize: fontSize,
+                fontFamily: fontFamily,
+                readerTheme: readerTheme,
+                lineHeight: lineHeight,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -7268,6 +8110,371 @@ typedef $$EpubFilesTableProcessedTableManager =
       EpubFile,
       PrefetchHooks Function({bool bookId})
     >;
+typedef $$ReaderBookmarksTableCreateCompanionBuilder =
+    ReaderBookmarksCompanion Function({
+      Value<int> id,
+      required int bookId,
+      required int chapterIndex,
+      Value<double> scrollPosition,
+      Value<String?> label,
+      Value<String?> chapterTitle,
+      required DateTime createdAt,
+    });
+typedef $$ReaderBookmarksTableUpdateCompanionBuilder =
+    ReaderBookmarksCompanion Function({
+      Value<int> id,
+      Value<int> bookId,
+      Value<int> chapterIndex,
+      Value<double> scrollPosition,
+      Value<String?> label,
+      Value<String?> chapterTitle,
+      Value<DateTime> createdAt,
+    });
+
+final class $$ReaderBookmarksTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $ReaderBookmarksTable, ReaderBookmark> {
+  $$ReaderBookmarksTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $BooksTable _bookIdTable(_$AppDatabase db) => db.books.createAlias(
+    $_aliasNameGenerator(db.readerBookmarks.bookId, db.books.id),
+  );
+
+  $$BooksTableProcessedTableManager get bookId {
+    final $_column = $_itemColumn<int>('book_id')!;
+
+    final manager = $$BooksTableTableManager(
+      $_db,
+      $_db.books,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ReaderBookmarksTableFilterComposer
+    extends Composer<_$AppDatabase, $ReaderBookmarksTable> {
+  $$ReaderBookmarksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get scrollPosition => $composableBuilder(
+    column: $table.scrollPosition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get chapterTitle => $composableBuilder(
+    column: $table.chapterTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BooksTableFilterComposer get bookId {
+    final $$BooksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableFilterComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReaderBookmarksTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReaderBookmarksTable> {
+  $$ReaderBookmarksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get scrollPosition => $composableBuilder(
+    column: $table.scrollPosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get chapterTitle => $composableBuilder(
+    column: $table.chapterTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BooksTableOrderingComposer get bookId {
+    final $$BooksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableOrderingComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReaderBookmarksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReaderBookmarksTable> {
+  $$ReaderBookmarksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get chapterIndex => $composableBuilder(
+    column: $table.chapterIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get scrollPosition => $composableBuilder(
+    column: $table.scrollPosition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<String> get chapterTitle => $composableBuilder(
+    column: $table.chapterTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$BooksTableAnnotationComposer get bookId {
+    final $$BooksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReaderBookmarksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReaderBookmarksTable,
+          ReaderBookmark,
+          $$ReaderBookmarksTableFilterComposer,
+          $$ReaderBookmarksTableOrderingComposer,
+          $$ReaderBookmarksTableAnnotationComposer,
+          $$ReaderBookmarksTableCreateCompanionBuilder,
+          $$ReaderBookmarksTableUpdateCompanionBuilder,
+          (ReaderBookmark, $$ReaderBookmarksTableReferences),
+          ReaderBookmark,
+          PrefetchHooks Function({bool bookId})
+        > {
+  $$ReaderBookmarksTableTableManager(
+    _$AppDatabase db,
+    $ReaderBookmarksTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReaderBookmarksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReaderBookmarksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReaderBookmarksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> bookId = const Value.absent(),
+                Value<int> chapterIndex = const Value.absent(),
+                Value<double> scrollPosition = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<String?> chapterTitle = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => ReaderBookmarksCompanion(
+                id: id,
+                bookId: bookId,
+                chapterIndex: chapterIndex,
+                scrollPosition: scrollPosition,
+                label: label,
+                chapterTitle: chapterTitle,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int bookId,
+                required int chapterIndex,
+                Value<double> scrollPosition = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<String?> chapterTitle = const Value.absent(),
+                required DateTime createdAt,
+              }) => ReaderBookmarksCompanion.insert(
+                id: id,
+                bookId: bookId,
+                chapterIndex: chapterIndex,
+                scrollPosition: scrollPosition,
+                label: label,
+                chapterTitle: chapterTitle,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ReaderBookmarksTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({bookId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (bookId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.bookId,
+                                referencedTable:
+                                    $$ReaderBookmarksTableReferences
+                                        ._bookIdTable(db),
+                                referencedColumn:
+                                    $$ReaderBookmarksTableReferences
+                                        ._bookIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ReaderBookmarksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReaderBookmarksTable,
+      ReaderBookmark,
+      $$ReaderBookmarksTableFilterComposer,
+      $$ReaderBookmarksTableOrderingComposer,
+      $$ReaderBookmarksTableAnnotationComposer,
+      $$ReaderBookmarksTableCreateCompanionBuilder,
+      $$ReaderBookmarksTableUpdateCompanionBuilder,
+      (ReaderBookmark, $$ReaderBookmarksTableReferences),
+      ReaderBookmark,
+      PrefetchHooks Function({bool bookId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7288,4 +8495,6 @@ class $AppDatabaseManager {
       $$MindmapEdgesTableTableManager(_db, _db.mindmapEdges);
   $$EpubFilesTableTableManager get epubFiles =>
       $$EpubFilesTableTableManager(_db, _db.epubFiles);
+  $$ReaderBookmarksTableTableManager get readerBookmarks =>
+      $$ReaderBookmarksTableTableManager(_db, _db.readerBookmarks);
 }

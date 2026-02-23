@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../domain/models/epub_data.dart' as domain;
+import '../../domain/models/epub_data.dart' show ReaderTheme;
 import '../database/app_database.dart';
 import '../database/daos/epub_file_dao.dart';
 
@@ -30,6 +31,16 @@ class EpubRepository {
     return _dao.deleteByBookId(bookId);
   }
 
+  Future<void> updateReaderSettings(int id, {int? fontSize, String? fontFamily, ReaderTheme? readerTheme, double? lineHeight}) {
+    return _dao.updateReaderSettings(
+      id,
+      fontSize: fontSize,
+      fontFamily: fontFamily,
+      readerTheme: readerTheme?.index,
+      lineHeight: lineHeight,
+    );
+  }
+
   domain.EpubData _toDomain(EpubFile row) {
     return domain.EpubData(
       id: row.id,
@@ -38,6 +49,10 @@ class EpubRepository {
       currentChapterIndex: row.currentChapterIndex,
       scrollPosition: row.scrollPosition,
       lastReadAt: row.lastReadAt,
+      fontSize: row.fontSize,
+      fontFamily: row.fontFamily,
+      readerTheme: ReaderTheme.values[row.readerTheme.clamp(0, ReaderTheme.values.length - 1)],
+      lineHeight: row.lineHeight,
     );
   }
 
@@ -48,6 +63,10 @@ class EpubRepository {
       currentChapterIndex: Value(d.currentChapterIndex),
       scrollPosition: Value(d.scrollPosition),
       lastReadAt: Value(d.lastReadAt),
+      fontSize: Value(d.fontSize),
+      fontFamily: Value(d.fontFamily),
+      readerTheme: Value(d.readerTheme.index),
+      lineHeight: Value(d.lineHeight),
     );
   }
 }

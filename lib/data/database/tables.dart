@@ -68,6 +68,20 @@ class EpubFiles extends Table {
   IntColumn get currentChapterIndex => integer().withDefault(const Constant(0))();
   RealColumn get scrollPosition => real().withDefault(const Constant(0.0))();
   DateTimeColumn get lastReadAt => dateTime().nullable()();
+  IntColumn get fontSize => integer().withDefault(const Constant(18))();
+  TextColumn get fontFamily => text().withDefault(const Constant('serif'))();
+  IntColumn get readerTheme => integer().withDefault(const Constant(0))();
+  RealColumn get lineHeight => real().withDefault(const Constant(1.7))();
+}
+
+class ReaderBookmarks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get bookId => integer().references(Books, #id)();
+  IntColumn get chapterIndex => integer()();
+  RealColumn get scrollPosition => real().withDefault(const Constant(0.0))();
+  TextColumn get label => text().nullable()();
+  TextColumn get chapterTitle => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
 }
 
 class MindmapEdges extends Table {
