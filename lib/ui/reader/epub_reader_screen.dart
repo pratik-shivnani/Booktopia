@@ -10,9 +10,12 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/database/app_database.dart' show ReaderBookmarksCompanion, ReaderHighlightsCompanion, CharacterSheetsCompanion, CharacterSheet;
+import '../../data/services/entity_extractor.dart';
 import '../../data/services/epub_service.dart';
 import '../../data/services/stat_parser.dart';
 import '../../domain/models/epub_data.dart';
+import '../../domain/models/mindmap_edge.dart' as domain_edge;
+import '../../domain/models/mindmap_node.dart' as domain_node;
 import '../../providers/providers.dart';
 import 'highlight_js.dart';
 import 'reader_settings_sheet.dart';
@@ -666,6 +669,116 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     }
   }
 
+  Future<void> _syncMindmap() async {
+    if (_parsedEpub == null) return;
+
+    // Get plain text of current chapter
+    final htmlContent = await ref.read(epubServiceProvider).getChapterHtml(_parsedEpub!, _currentChapter);
+    final plainText = _stripHtml(htmlContent);
+    if (plainText.length < 50) return;
+
+    // Get known entities
+    final characters = await ref.read(characterRepositoryProvider).watchCharactersByBook(widget.bookId).first;
+    final worldAreas = await ref.read(worldAreaRepositoryProvider).watchWorldAreasByBook(widget.bookId).first;
+
+    if (characters.isEmpty && worldAreas.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Add characters or world areas first to auto-update the mindmap'), duration: Duration(seconds: 3)),
+        );
+      }
+      return;
+    }
+
+    final chapterLabel = 'Ch. ${_currentChapter + 1}';
+    final extractor = EntityExtractor();
+    final result = extractor.extract(
+      text: plainText,
+      characters: characters,
+      worldAreas: worldAreas,
+      chapterLabel: chapterLabel,
+    );
+
+    if (result.mentions.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No known entities found in $chapterLabel'), duration: const Duration(seconds: 2)),
+        );
+      }
+      return;
+    }
+
+    // Get current mindmap state
+    final existingNodes = await ref.read(mindmapRepositoryProvider).watchNodesByBook(widget.bookId).first;
+    final existingEdges = await ref.read(mindmapRepositoryProvider).watchEdgesByBook(widget.bookId).first;
+
+    final updater = MindmapAutoUpdater();
+    final plan = updater.planUpdate(
+      extraction: result,
+      existingNodes: existingNodes,
+      existingEdges: existingEdges,
+      bookId: widget.bookId,
+    );
+
+    final repo = ref.read(mindmapRepositoryProvider);
+
+    // Create new nodes and collect their IDs
+    final createdNodeIds = <String, int>{};
+    for (final node in plan.newNodes) {
+      final id = await repo.addNode(node);
+      createdNodeIds[node.label] = id;
+    }
+
+    // Resolve edges that reference newly created nodes
+    int edgesCreated = 0;
+    for (final co in plan.coOccurrences) {
+      final nodeAId = plan.mentionToNodeId[co.entityA.name] ?? createdNodeIds[co.entityA.name];
+      final nodeBId = plan.mentionToNodeId[co.entityB.name] ?? createdNodeIds[co.entityB.name];
+      if (nodeAId != null && nodeBId != null && nodeAId != nodeBId) {
+        // Check if edge already exists
+        final allEdges = await repo.watchEdgesByBook(widget.bookId).first;
+        final exists = allEdges.any((e) =>
+          (e.fromNodeId == nodeAId && e.toNodeId == nodeBId) ||
+          (e.fromNodeId == nodeBId && e.toNodeId == nodeAId));
+        if (!exists) {
+          await repo.addEdge(domain_edge.MindmapEdge(
+            bookId: widget.bookId,
+            fromNodeId: nodeAId,
+            toNodeId: nodeBId,
+            label: chapterLabel,
+          ));
+          edgesCreated++;
+        }
+      }
+    }
+
+    if (mounted) {
+      final mentionNames = result.mentions.map((m) => m.name).take(4).join(', ');
+      final extra = result.mentions.length > 4 ? ' +${result.mentions.length - 4} more' : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$chapterLabel: found $mentionNames$extra'
+              '${plan.newNodes.isNotEmpty ? ', +${plan.newNodes.length} nodes' : ''}'
+              '${edgesCreated > 0 ? ', +$edgesCreated edges' : ''}'),
+          action: SnackBarAction(
+            label: 'Mindmap',
+            onPressed: () => context.pushNamed('mindmap', pathParameters: {'id': '${widget.bookId}'}),
+          ),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  String _stripHtml(String html) {
+    return html
+        .replaceAll(RegExp(r'<style[^>]*>[\s\S]*?</style>', caseSensitive: false), '')
+        .replaceAll(RegExp(r'<script[^>]*>[\s\S]*?</script>', caseSensitive: false), '')
+        .replaceAll(RegExp(r'<[^>]+>'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
   Future<void> _addBookmark() async {
     final chapterTitle = _getChapterTitle();
     final dao = ref.read(readerBookmarkDaoProvider);
@@ -733,6 +846,11 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.hub_outlined),
+            tooltip: 'Sync Mindmap',
+            onPressed: _syncMindmap,
+          ),
           IconButton(
             icon: const Icon(Icons.bookmark_add_outlined),
             tooltip: 'Add bookmark',
