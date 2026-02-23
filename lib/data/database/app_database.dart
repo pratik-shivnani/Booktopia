@@ -18,6 +18,8 @@ part 'app_database.g.dart';
   EpubFiles,
   ReaderBookmarks,
   ReaderHighlights,
+  CharacterSheets,
+  CharacterSheetEntries,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
@@ -25,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -46,6 +48,10 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 4) {
           await m.createTable(readerHighlights);
+        }
+        if (from < 5) {
+          await m.createTable(characterSheets);
+          await m.createTable(characterSheetEntries);
         }
       },
     );

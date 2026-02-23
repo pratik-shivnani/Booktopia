@@ -152,6 +152,13 @@ class _BookDetailContent extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 _EpubReaderCard(book: book),
+                const SizedBox(height: 12),
+                _SectionCard(
+                  icon: Icons.assignment_ind_outlined,
+                  title: 'Character Sheets',
+                  subtitle: 'LitRPG stat tracking from reader',
+                  onTap: () => context.pushNamed('character_sheets', pathParameters: {'id': '${book.id}'}),
+                ),
                 const SizedBox(height: 80),
               ]),
             ),

@@ -84,6 +84,26 @@ class ReaderBookmarks extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
+class CharacterSheets extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get bookId => integer().references(Books, #id)();
+  IntColumn get characterId => integer().nullable().references(Characters, #id)();
+  TextColumn get name => text().withLength(min: 1, max: 300)();
+  IntColumn get level => integer().nullable()();
+  TextColumn get className => text().nullable()();
+  DateTimeColumn get lastUpdatedAt => dateTime()();
+}
+
+class CharacterSheetEntries extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  @ReferenceName('entriesSheet')
+  IntColumn get sheetId => integer().references(CharacterSheets, #id)();
+  IntColumn get category => integer().withDefault(const Constant(0))();
+  TextColumn get entryKey => text()();
+  TextColumn get entryValue => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+}
+
 class ReaderHighlights extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get bookId => integer().references(Books, #id)();

@@ -4778,6 +4778,881 @@ class ReaderHighlightsCompanion extends UpdateCompanion<ReaderHighlight> {
   }
 }
 
+class $CharacterSheetsTable extends CharacterSheets
+    with TableInfo<$CharacterSheetsTable, CharacterSheet> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CharacterSheetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
+    'book_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES books (id)',
+    ),
+  );
+  static const VerificationMeta _characterIdMeta = const VerificationMeta(
+    'characterId',
+  );
+  @override
+  late final GeneratedColumn<int> characterId = GeneratedColumn<int>(
+    'character_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES characters (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 300,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<int> level = GeneratedColumn<int>(
+    'level',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _classNameMeta = const VerificationMeta(
+    'className',
+  );
+  @override
+  late final GeneratedColumn<String> className = GeneratedColumn<String>(
+    'class_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastUpdatedAtMeta = const VerificationMeta(
+    'lastUpdatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastUpdatedAt =
+      GeneratedColumn<DateTime>(
+        'last_updated_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    bookId,
+    characterId,
+    name,
+    level,
+    className,
+    lastUpdatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'character_sheets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CharacterSheet> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('book_id')) {
+      context.handle(
+        _bookIdMeta,
+        bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('character_id')) {
+      context.handle(
+        _characterIdMeta,
+        characterId.isAcceptableOrUnknown(
+          data['character_id']!,
+          _characterIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    }
+    if (data.containsKey('class_name')) {
+      context.handle(
+        _classNameMeta,
+        className.isAcceptableOrUnknown(data['class_name']!, _classNameMeta),
+      );
+    }
+    if (data.containsKey('last_updated_at')) {
+      context.handle(
+        _lastUpdatedAtMeta,
+        lastUpdatedAt.isAcceptableOrUnknown(
+          data['last_updated_at']!,
+          _lastUpdatedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastUpdatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CharacterSheet map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CharacterSheet(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      bookId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}book_id'],
+      )!,
+      characterId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}character_id'],
+      ),
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}level'],
+      ),
+      className: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}class_name'],
+      ),
+      lastUpdatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CharacterSheetsTable createAlias(String alias) {
+    return $CharacterSheetsTable(attachedDatabase, alias);
+  }
+}
+
+class CharacterSheet extends DataClass implements Insertable<CharacterSheet> {
+  final int id;
+  final int bookId;
+  final int? characterId;
+  final String name;
+  final int? level;
+  final String? className;
+  final DateTime lastUpdatedAt;
+  const CharacterSheet({
+    required this.id,
+    required this.bookId,
+    this.characterId,
+    required this.name,
+    this.level,
+    this.className,
+    required this.lastUpdatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['book_id'] = Variable<int>(bookId);
+    if (!nullToAbsent || characterId != null) {
+      map['character_id'] = Variable<int>(characterId);
+    }
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || level != null) {
+      map['level'] = Variable<int>(level);
+    }
+    if (!nullToAbsent || className != null) {
+      map['class_name'] = Variable<String>(className);
+    }
+    map['last_updated_at'] = Variable<DateTime>(lastUpdatedAt);
+    return map;
+  }
+
+  CharacterSheetsCompanion toCompanion(bool nullToAbsent) {
+    return CharacterSheetsCompanion(
+      id: Value(id),
+      bookId: Value(bookId),
+      characterId: characterId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(characterId),
+      name: Value(name),
+      level: level == null && nullToAbsent
+          ? const Value.absent()
+          : Value(level),
+      className: className == null && nullToAbsent
+          ? const Value.absent()
+          : Value(className),
+      lastUpdatedAt: Value(lastUpdatedAt),
+    );
+  }
+
+  factory CharacterSheet.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CharacterSheet(
+      id: serializer.fromJson<int>(json['id']),
+      bookId: serializer.fromJson<int>(json['bookId']),
+      characterId: serializer.fromJson<int?>(json['characterId']),
+      name: serializer.fromJson<String>(json['name']),
+      level: serializer.fromJson<int?>(json['level']),
+      className: serializer.fromJson<String?>(json['className']),
+      lastUpdatedAt: serializer.fromJson<DateTime>(json['lastUpdatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'bookId': serializer.toJson<int>(bookId),
+      'characterId': serializer.toJson<int?>(characterId),
+      'name': serializer.toJson<String>(name),
+      'level': serializer.toJson<int?>(level),
+      'className': serializer.toJson<String?>(className),
+      'lastUpdatedAt': serializer.toJson<DateTime>(lastUpdatedAt),
+    };
+  }
+
+  CharacterSheet copyWith({
+    int? id,
+    int? bookId,
+    Value<int?> characterId = const Value.absent(),
+    String? name,
+    Value<int?> level = const Value.absent(),
+    Value<String?> className = const Value.absent(),
+    DateTime? lastUpdatedAt,
+  }) => CharacterSheet(
+    id: id ?? this.id,
+    bookId: bookId ?? this.bookId,
+    characterId: characterId.present ? characterId.value : this.characterId,
+    name: name ?? this.name,
+    level: level.present ? level.value : this.level,
+    className: className.present ? className.value : this.className,
+    lastUpdatedAt: lastUpdatedAt ?? this.lastUpdatedAt,
+  );
+  CharacterSheet copyWithCompanion(CharacterSheetsCompanion data) {
+    return CharacterSheet(
+      id: data.id.present ? data.id.value : this.id,
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      characterId: data.characterId.present
+          ? data.characterId.value
+          : this.characterId,
+      name: data.name.present ? data.name.value : this.name,
+      level: data.level.present ? data.level.value : this.level,
+      className: data.className.present ? data.className.value : this.className,
+      lastUpdatedAt: data.lastUpdatedAt.present
+          ? data.lastUpdatedAt.value
+          : this.lastUpdatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CharacterSheet(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('characterId: $characterId, ')
+          ..write('name: $name, ')
+          ..write('level: $level, ')
+          ..write('className: $className, ')
+          ..write('lastUpdatedAt: $lastUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    bookId,
+    characterId,
+    name,
+    level,
+    className,
+    lastUpdatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CharacterSheet &&
+          other.id == this.id &&
+          other.bookId == this.bookId &&
+          other.characterId == this.characterId &&
+          other.name == this.name &&
+          other.level == this.level &&
+          other.className == this.className &&
+          other.lastUpdatedAt == this.lastUpdatedAt);
+}
+
+class CharacterSheetsCompanion extends UpdateCompanion<CharacterSheet> {
+  final Value<int> id;
+  final Value<int> bookId;
+  final Value<int?> characterId;
+  final Value<String> name;
+  final Value<int?> level;
+  final Value<String?> className;
+  final Value<DateTime> lastUpdatedAt;
+  const CharacterSheetsCompanion({
+    this.id = const Value.absent(),
+    this.bookId = const Value.absent(),
+    this.characterId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.level = const Value.absent(),
+    this.className = const Value.absent(),
+    this.lastUpdatedAt = const Value.absent(),
+  });
+  CharacterSheetsCompanion.insert({
+    this.id = const Value.absent(),
+    required int bookId,
+    this.characterId = const Value.absent(),
+    required String name,
+    this.level = const Value.absent(),
+    this.className = const Value.absent(),
+    required DateTime lastUpdatedAt,
+  }) : bookId = Value(bookId),
+       name = Value(name),
+       lastUpdatedAt = Value(lastUpdatedAt);
+  static Insertable<CharacterSheet> custom({
+    Expression<int>? id,
+    Expression<int>? bookId,
+    Expression<int>? characterId,
+    Expression<String>? name,
+    Expression<int>? level,
+    Expression<String>? className,
+    Expression<DateTime>? lastUpdatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (bookId != null) 'book_id': bookId,
+      if (characterId != null) 'character_id': characterId,
+      if (name != null) 'name': name,
+      if (level != null) 'level': level,
+      if (className != null) 'class_name': className,
+      if (lastUpdatedAt != null) 'last_updated_at': lastUpdatedAt,
+    });
+  }
+
+  CharacterSheetsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? bookId,
+    Value<int?>? characterId,
+    Value<String>? name,
+    Value<int?>? level,
+    Value<String?>? className,
+    Value<DateTime>? lastUpdatedAt,
+  }) {
+    return CharacterSheetsCompanion(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      characterId: characterId ?? this.characterId,
+      name: name ?? this.name,
+      level: level ?? this.level,
+      className: className ?? this.className,
+      lastUpdatedAt: lastUpdatedAt ?? this.lastUpdatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (bookId.present) {
+      map['book_id'] = Variable<int>(bookId.value);
+    }
+    if (characterId.present) {
+      map['character_id'] = Variable<int>(characterId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<int>(level.value);
+    }
+    if (className.present) {
+      map['class_name'] = Variable<String>(className.value);
+    }
+    if (lastUpdatedAt.present) {
+      map['last_updated_at'] = Variable<DateTime>(lastUpdatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CharacterSheetsCompanion(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('characterId: $characterId, ')
+          ..write('name: $name, ')
+          ..write('level: $level, ')
+          ..write('className: $className, ')
+          ..write('lastUpdatedAt: $lastUpdatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CharacterSheetEntriesTable extends CharacterSheetEntries
+    with TableInfo<$CharacterSheetEntriesTable, CharacterSheetEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CharacterSheetEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _sheetIdMeta = const VerificationMeta(
+    'sheetId',
+  );
+  @override
+  late final GeneratedColumn<int> sheetId = GeneratedColumn<int>(
+    'sheet_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES character_sheets (id)',
+    ),
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<int> category = GeneratedColumn<int>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _entryKeyMeta = const VerificationMeta(
+    'entryKey',
+  );
+  @override
+  late final GeneratedColumn<String> entryKey = GeneratedColumn<String>(
+    'entry_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entryValueMeta = const VerificationMeta(
+    'entryValue',
+  );
+  @override
+  late final GeneratedColumn<String> entryValue = GeneratedColumn<String>(
+    'entry_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    sheetId,
+    category,
+    entryKey,
+    entryValue,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'character_sheet_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CharacterSheetEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('sheet_id')) {
+      context.handle(
+        _sheetIdMeta,
+        sheetId.isAcceptableOrUnknown(data['sheet_id']!, _sheetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sheetIdMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    }
+    if (data.containsKey('entry_key')) {
+      context.handle(
+        _entryKeyMeta,
+        entryKey.isAcceptableOrUnknown(data['entry_key']!, _entryKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entryKeyMeta);
+    }
+    if (data.containsKey('entry_value')) {
+      context.handle(
+        _entryValueMeta,
+        entryValue.isAcceptableOrUnknown(data['entry_value']!, _entryValueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entryValueMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CharacterSheetEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CharacterSheetEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      sheetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sheet_id'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}category'],
+      )!,
+      entryKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entry_key'],
+      )!,
+      entryValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entry_value'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $CharacterSheetEntriesTable createAlias(String alias) {
+    return $CharacterSheetEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class CharacterSheetEntry extends DataClass
+    implements Insertable<CharacterSheetEntry> {
+  final int id;
+  final int sheetId;
+  final int category;
+  final String entryKey;
+  final String entryValue;
+  final int sortOrder;
+  const CharacterSheetEntry({
+    required this.id,
+    required this.sheetId,
+    required this.category,
+    required this.entryKey,
+    required this.entryValue,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['sheet_id'] = Variable<int>(sheetId);
+    map['category'] = Variable<int>(category);
+    map['entry_key'] = Variable<String>(entryKey);
+    map['entry_value'] = Variable<String>(entryValue);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  CharacterSheetEntriesCompanion toCompanion(bool nullToAbsent) {
+    return CharacterSheetEntriesCompanion(
+      id: Value(id),
+      sheetId: Value(sheetId),
+      category: Value(category),
+      entryKey: Value(entryKey),
+      entryValue: Value(entryValue),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory CharacterSheetEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CharacterSheetEntry(
+      id: serializer.fromJson<int>(json['id']),
+      sheetId: serializer.fromJson<int>(json['sheetId']),
+      category: serializer.fromJson<int>(json['category']),
+      entryKey: serializer.fromJson<String>(json['entryKey']),
+      entryValue: serializer.fromJson<String>(json['entryValue']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'sheetId': serializer.toJson<int>(sheetId),
+      'category': serializer.toJson<int>(category),
+      'entryKey': serializer.toJson<String>(entryKey),
+      'entryValue': serializer.toJson<String>(entryValue),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  CharacterSheetEntry copyWith({
+    int? id,
+    int? sheetId,
+    int? category,
+    String? entryKey,
+    String? entryValue,
+    int? sortOrder,
+  }) => CharacterSheetEntry(
+    id: id ?? this.id,
+    sheetId: sheetId ?? this.sheetId,
+    category: category ?? this.category,
+    entryKey: entryKey ?? this.entryKey,
+    entryValue: entryValue ?? this.entryValue,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  CharacterSheetEntry copyWithCompanion(CharacterSheetEntriesCompanion data) {
+    return CharacterSheetEntry(
+      id: data.id.present ? data.id.value : this.id,
+      sheetId: data.sheetId.present ? data.sheetId.value : this.sheetId,
+      category: data.category.present ? data.category.value : this.category,
+      entryKey: data.entryKey.present ? data.entryKey.value : this.entryKey,
+      entryValue: data.entryValue.present
+          ? data.entryValue.value
+          : this.entryValue,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CharacterSheetEntry(')
+          ..write('id: $id, ')
+          ..write('sheetId: $sheetId, ')
+          ..write('category: $category, ')
+          ..write('entryKey: $entryKey, ')
+          ..write('entryValue: $entryValue, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, sheetId, category, entryKey, entryValue, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CharacterSheetEntry &&
+          other.id == this.id &&
+          other.sheetId == this.sheetId &&
+          other.category == this.category &&
+          other.entryKey == this.entryKey &&
+          other.entryValue == this.entryValue &&
+          other.sortOrder == this.sortOrder);
+}
+
+class CharacterSheetEntriesCompanion
+    extends UpdateCompanion<CharacterSheetEntry> {
+  final Value<int> id;
+  final Value<int> sheetId;
+  final Value<int> category;
+  final Value<String> entryKey;
+  final Value<String> entryValue;
+  final Value<int> sortOrder;
+  const CharacterSheetEntriesCompanion({
+    this.id = const Value.absent(),
+    this.sheetId = const Value.absent(),
+    this.category = const Value.absent(),
+    this.entryKey = const Value.absent(),
+    this.entryValue = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+  });
+  CharacterSheetEntriesCompanion.insert({
+    this.id = const Value.absent(),
+    required int sheetId,
+    this.category = const Value.absent(),
+    required String entryKey,
+    required String entryValue,
+    this.sortOrder = const Value.absent(),
+  }) : sheetId = Value(sheetId),
+       entryKey = Value(entryKey),
+       entryValue = Value(entryValue);
+  static Insertable<CharacterSheetEntry> custom({
+    Expression<int>? id,
+    Expression<int>? sheetId,
+    Expression<int>? category,
+    Expression<String>? entryKey,
+    Expression<String>? entryValue,
+    Expression<int>? sortOrder,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (sheetId != null) 'sheet_id': sheetId,
+      if (category != null) 'category': category,
+      if (entryKey != null) 'entry_key': entryKey,
+      if (entryValue != null) 'entry_value': entryValue,
+      if (sortOrder != null) 'sort_order': sortOrder,
+    });
+  }
+
+  CharacterSheetEntriesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? sheetId,
+    Value<int>? category,
+    Value<String>? entryKey,
+    Value<String>? entryValue,
+    Value<int>? sortOrder,
+  }) {
+    return CharacterSheetEntriesCompanion(
+      id: id ?? this.id,
+      sheetId: sheetId ?? this.sheetId,
+      category: category ?? this.category,
+      entryKey: entryKey ?? this.entryKey,
+      entryValue: entryValue ?? this.entryValue,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (sheetId.present) {
+      map['sheet_id'] = Variable<int>(sheetId.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<int>(category.value);
+    }
+    if (entryKey.present) {
+      map['entry_key'] = Variable<String>(entryKey.value);
+    }
+    if (entryValue.present) {
+      map['entry_value'] = Variable<String>(entryValue.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CharacterSheetEntriesCompanion(')
+          ..write('id: $id, ')
+          ..write('sheetId: $sheetId, ')
+          ..write('category: $category, ')
+          ..write('entryKey: $entryKey, ')
+          ..write('entryValue: $entryValue, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4795,6 +5670,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ReaderHighlightsTable readerHighlights = $ReaderHighlightsTable(
     this,
   );
+  late final $CharacterSheetsTable characterSheets = $CharacterSheetsTable(
+    this,
+  );
+  late final $CharacterSheetEntriesTable characterSheetEntries =
+      $CharacterSheetEntriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4810,6 +5690,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     epubFiles,
     readerBookmarks,
     readerHighlights,
+    characterSheets,
+    characterSheetEntries,
   ];
 }
 
@@ -5009,6 +5891,26 @@ final class $$BooksTableReferences
 
     final cache = $_typedResult.readTableOrNull(
       _readerHighlightsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$CharacterSheetsTable, List<CharacterSheet>>
+  _characterSheetsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.characterSheets,
+    aliasName: $_aliasNameGenerator(db.books.id, db.characterSheets.bookId),
+  );
+
+  $$CharacterSheetsTableProcessedTableManager get characterSheetsRefs {
+    final manager = $$CharacterSheetsTableTableManager(
+      $_db,
+      $_db.characterSheets,
+    ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _characterSheetsRefsTable($_db),
     );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
@@ -5300,6 +6202,31 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
           }) => $$ReaderHighlightsTableFilterComposer(
             $db: $db,
             $table: $db.readerHighlights,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> characterSheetsRefs(
+    Expression<bool> Function($$CharacterSheetsTableFilterComposer f) f,
+  ) {
+    final $$CharacterSheetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.characterSheets,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharacterSheetsTableFilterComposer(
+            $db: $db,
+            $table: $db.characterSheets,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5657,6 +6584,31 @@ class $$BooksTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> characterSheetsRefs<T extends Object>(
+    Expression<T> Function($$CharacterSheetsTableAnnotationComposer a) f,
+  ) {
+    final $$CharacterSheetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.characterSheets,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharacterSheetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.characterSheets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BooksTableTableManager
@@ -5682,6 +6634,7 @@ class $$BooksTableTableManager
             bool epubFilesRefs,
             bool readerBookmarksRefs,
             bool readerHighlightsRefs,
+            bool characterSheetsRefs,
           })
         > {
   $$BooksTableTableManager(_$AppDatabase db, $BooksTable table)
@@ -5768,6 +6721,7 @@ class $$BooksTableTableManager
                 epubFilesRefs = false,
                 readerBookmarksRefs = false,
                 readerHighlightsRefs = false,
+                characterSheetsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -5781,6 +6735,7 @@ class $$BooksTableTableManager
                     if (epubFilesRefs) db.epubFiles,
                     if (readerBookmarksRefs) db.readerBookmarks,
                     if (readerHighlightsRefs) db.readerHighlights,
+                    if (characterSheetsRefs) db.characterSheets,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5950,6 +6905,27 @@ class $$BooksTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (characterSheetsRefs)
+                        await $_getPrefetchedData<
+                          Book,
+                          $BooksTable,
+                          CharacterSheet
+                        >(
+                          currentTable: table,
+                          referencedTable: $$BooksTableReferences
+                              ._characterSheetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BooksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).characterSheetsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.bookId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5980,6 +6956,7 @@ typedef $$BooksTableProcessedTableManager =
         bool epubFilesRefs,
         bool readerBookmarksRefs,
         bool readerHighlightsRefs,
+        bool characterSheetsRefs,
       })
     >;
 typedef $$CharactersTableCreateCompanionBuilder =
@@ -6020,6 +6997,29 @@ final class $$CharactersTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$CharacterSheetsTable, List<CharacterSheet>>
+  _characterSheetsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.characterSheets,
+    aliasName: $_aliasNameGenerator(
+      db.characters.id,
+      db.characterSheets.characterId,
+    ),
+  );
+
+  $$CharacterSheetsTableProcessedTableManager get characterSheetsRefs {
+    final manager = $$CharacterSheetsTableTableManager(
+      $_db,
+      $_db.characterSheets,
+    ).filter((f) => f.characterId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _characterSheetsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 }
@@ -6079,6 +7079,31 @@ class $$CharactersTableFilterComposer
           ),
     );
     return composer;
+  }
+
+  Expression<bool> characterSheetsRefs(
+    Expression<bool> Function($$CharacterSheetsTableFilterComposer f) f,
+  ) {
+    final $$CharacterSheetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.characterSheets,
+      getReferencedColumn: (t) => t.characterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharacterSheetsTableFilterComposer(
+            $db: $db,
+            $table: $db.characterSheets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -6188,6 +7213,31 @@ class $$CharactersTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> characterSheetsRefs<T extends Object>(
+    Expression<T> Function($$CharacterSheetsTableAnnotationComposer a) f,
+  ) {
+    final $$CharacterSheetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.characterSheets,
+      getReferencedColumn: (t) => t.characterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharacterSheetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.characterSheets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CharactersTableTableManager
@@ -6203,7 +7253,7 @@ class $$CharactersTableTableManager
           $$CharactersTableUpdateCompanionBuilder,
           (Character, $$CharactersTableReferences),
           Character,
-          PrefetchHooks Function({bool bookId})
+          PrefetchHooks Function({bool bookId, bool characterSheetsRefs})
         > {
   $$CharactersTableTableManager(_$AppDatabase db, $CharactersTable table)
     : super(
@@ -6256,47 +7306,73 @@ class $$CharactersTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({bookId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (bookId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.bookId,
-                                referencedTable: $$CharactersTableReferences
-                                    ._bookIdTable(db),
-                                referencedColumn: $$CharactersTableReferences
-                                    ._bookIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({bookId = false, characterSheetsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (characterSheetsRefs) db.characterSheets,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (bookId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.bookId,
+                                    referencedTable: $$CharactersTableReferences
+                                        ._bookIdTable(db),
+                                    referencedColumn:
+                                        $$CharactersTableReferences
+                                            ._bookIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (characterSheetsRefs)
+                        await $_getPrefetchedData<
+                          Character,
+                          $CharactersTable,
+                          CharacterSheet
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CharactersTableReferences
+                              ._characterSheetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CharactersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).characterSheetsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.characterId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -6313,7 +7389,7 @@ typedef $$CharactersTableProcessedTableManager =
       $$CharactersTableUpdateCompanionBuilder,
       (Character, $$CharactersTableReferences),
       Character,
-      PrefetchHooks Function({bool bookId})
+      PrefetchHooks Function({bool bookId, bool characterSheetsRefs})
     >;
 typedef $$NotesTableCreateCompanionBuilder =
     NotesCompanion Function({
@@ -9533,6 +10609,921 @@ typedef $$ReaderHighlightsTableProcessedTableManager =
       ReaderHighlight,
       PrefetchHooks Function({bool bookId})
     >;
+typedef $$CharacterSheetsTableCreateCompanionBuilder =
+    CharacterSheetsCompanion Function({
+      Value<int> id,
+      required int bookId,
+      Value<int?> characterId,
+      required String name,
+      Value<int?> level,
+      Value<String?> className,
+      required DateTime lastUpdatedAt,
+    });
+typedef $$CharacterSheetsTableUpdateCompanionBuilder =
+    CharacterSheetsCompanion Function({
+      Value<int> id,
+      Value<int> bookId,
+      Value<int?> characterId,
+      Value<String> name,
+      Value<int?> level,
+      Value<String?> className,
+      Value<DateTime> lastUpdatedAt,
+    });
+
+final class $$CharacterSheetsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $CharacterSheetsTable, CharacterSheet> {
+  $$CharacterSheetsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $BooksTable _bookIdTable(_$AppDatabase db) => db.books.createAlias(
+    $_aliasNameGenerator(db.characterSheets.bookId, db.books.id),
+  );
+
+  $$BooksTableProcessedTableManager get bookId {
+    final $_column = $_itemColumn<int>('book_id')!;
+
+    final manager = $$BooksTableTableManager(
+      $_db,
+      $_db.books,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $CharactersTable _characterIdTable(_$AppDatabase db) =>
+      db.characters.createAlias(
+        $_aliasNameGenerator(db.characterSheets.characterId, db.characters.id),
+      );
+
+  $$CharactersTableProcessedTableManager? get characterId {
+    final $_column = $_itemColumn<int>('character_id');
+    if ($_column == null) return null;
+    final manager = $$CharactersTableTableManager(
+      $_db,
+      $_db.characters,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_characterIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $CharacterSheetEntriesTable,
+    List<CharacterSheetEntry>
+  >
+  _entriesSheetTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.characterSheetEntries,
+    aliasName: $_aliasNameGenerator(
+      db.characterSheets.id,
+      db.characterSheetEntries.sheetId,
+    ),
+  );
+
+  $$CharacterSheetEntriesTableProcessedTableManager get entriesSheet {
+    final manager = $$CharacterSheetEntriesTableTableManager(
+      $_db,
+      $_db.characterSheetEntries,
+    ).filter((f) => f.sheetId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_entriesSheetTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CharacterSheetsTableFilterComposer
+    extends Composer<_$AppDatabase, $CharacterSheetsTable> {
+  $$CharacterSheetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get className => $composableBuilder(
+    column: $table.className,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastUpdatedAt => $composableBuilder(
+    column: $table.lastUpdatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BooksTableFilterComposer get bookId {
+    final $$BooksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableFilterComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CharactersTableFilterComposer get characterId {
+    final $$CharactersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.characterId,
+      referencedTable: $db.characters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharactersTableFilterComposer(
+            $db: $db,
+            $table: $db.characters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> entriesSheet(
+    Expression<bool> Function($$CharacterSheetEntriesTableFilterComposer f) f,
+  ) {
+    final $$CharacterSheetEntriesTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.characterSheetEntries,
+          getReferencedColumn: (t) => t.sheetId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CharacterSheetEntriesTableFilterComposer(
+                $db: $db,
+                $table: $db.characterSheetEntries,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$CharacterSheetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CharacterSheetsTable> {
+  $$CharacterSheetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get className => $composableBuilder(
+    column: $table.className,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastUpdatedAt => $composableBuilder(
+    column: $table.lastUpdatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BooksTableOrderingComposer get bookId {
+    final $$BooksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableOrderingComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CharactersTableOrderingComposer get characterId {
+    final $$CharactersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.characterId,
+      referencedTable: $db.characters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharactersTableOrderingComposer(
+            $db: $db,
+            $table: $db.characters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CharacterSheetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CharacterSheetsTable> {
+  $$CharacterSheetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<String> get className =>
+      $composableBuilder(column: $table.className, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastUpdatedAt => $composableBuilder(
+    column: $table.lastUpdatedAt,
+    builder: (column) => column,
+  );
+
+  $$BooksTableAnnotationComposer get bookId {
+    final $$BooksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$CharactersTableAnnotationComposer get characterId {
+    final $$CharactersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.characterId,
+      referencedTable: $db.characters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharactersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.characters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> entriesSheet<T extends Object>(
+    Expression<T> Function($$CharacterSheetEntriesTableAnnotationComposer a) f,
+  ) {
+    final $$CharacterSheetEntriesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.characterSheetEntries,
+          getReferencedColumn: (t) => t.sheetId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$CharacterSheetEntriesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.characterSheetEntries,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$CharacterSheetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CharacterSheetsTable,
+          CharacterSheet,
+          $$CharacterSheetsTableFilterComposer,
+          $$CharacterSheetsTableOrderingComposer,
+          $$CharacterSheetsTableAnnotationComposer,
+          $$CharacterSheetsTableCreateCompanionBuilder,
+          $$CharacterSheetsTableUpdateCompanionBuilder,
+          (CharacterSheet, $$CharacterSheetsTableReferences),
+          CharacterSheet,
+          PrefetchHooks Function({
+            bool bookId,
+            bool characterId,
+            bool entriesSheet,
+          })
+        > {
+  $$CharacterSheetsTableTableManager(
+    _$AppDatabase db,
+    $CharacterSheetsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CharacterSheetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CharacterSheetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CharacterSheetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> bookId = const Value.absent(),
+                Value<int?> characterId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int?> level = const Value.absent(),
+                Value<String?> className = const Value.absent(),
+                Value<DateTime> lastUpdatedAt = const Value.absent(),
+              }) => CharacterSheetsCompanion(
+                id: id,
+                bookId: bookId,
+                characterId: characterId,
+                name: name,
+                level: level,
+                className: className,
+                lastUpdatedAt: lastUpdatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int bookId,
+                Value<int?> characterId = const Value.absent(),
+                required String name,
+                Value<int?> level = const Value.absent(),
+                Value<String?> className = const Value.absent(),
+                required DateTime lastUpdatedAt,
+              }) => CharacterSheetsCompanion.insert(
+                id: id,
+                bookId: bookId,
+                characterId: characterId,
+                name: name,
+                level: level,
+                className: className,
+                lastUpdatedAt: lastUpdatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CharacterSheetsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({bookId = false, characterId = false, entriesSheet = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (entriesSheet) db.characterSheetEntries,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (bookId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.bookId,
+                                    referencedTable:
+                                        $$CharacterSheetsTableReferences
+                                            ._bookIdTable(db),
+                                    referencedColumn:
+                                        $$CharacterSheetsTableReferences
+                                            ._bookIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (characterId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.characterId,
+                                    referencedTable:
+                                        $$CharacterSheetsTableReferences
+                                            ._characterIdTable(db),
+                                    referencedColumn:
+                                        $$CharacterSheetsTableReferences
+                                            ._characterIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (entriesSheet)
+                        await $_getPrefetchedData<
+                          CharacterSheet,
+                          $CharacterSheetsTable,
+                          CharacterSheetEntry
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CharacterSheetsTableReferences
+                              ._entriesSheetTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CharacterSheetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).entriesSheet,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.sheetId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$CharacterSheetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CharacterSheetsTable,
+      CharacterSheet,
+      $$CharacterSheetsTableFilterComposer,
+      $$CharacterSheetsTableOrderingComposer,
+      $$CharacterSheetsTableAnnotationComposer,
+      $$CharacterSheetsTableCreateCompanionBuilder,
+      $$CharacterSheetsTableUpdateCompanionBuilder,
+      (CharacterSheet, $$CharacterSheetsTableReferences),
+      CharacterSheet,
+      PrefetchHooks Function({bool bookId, bool characterId, bool entriesSheet})
+    >;
+typedef $$CharacterSheetEntriesTableCreateCompanionBuilder =
+    CharacterSheetEntriesCompanion Function({
+      Value<int> id,
+      required int sheetId,
+      Value<int> category,
+      required String entryKey,
+      required String entryValue,
+      Value<int> sortOrder,
+    });
+typedef $$CharacterSheetEntriesTableUpdateCompanionBuilder =
+    CharacterSheetEntriesCompanion Function({
+      Value<int> id,
+      Value<int> sheetId,
+      Value<int> category,
+      Value<String> entryKey,
+      Value<String> entryValue,
+      Value<int> sortOrder,
+    });
+
+final class $$CharacterSheetEntriesTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $CharacterSheetEntriesTable,
+          CharacterSheetEntry
+        > {
+  $$CharacterSheetEntriesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CharacterSheetsTable _sheetIdTable(_$AppDatabase db) =>
+      db.characterSheets.createAlias(
+        $_aliasNameGenerator(
+          db.characterSheetEntries.sheetId,
+          db.characterSheets.id,
+        ),
+      );
+
+  $$CharacterSheetsTableProcessedTableManager get sheetId {
+    final $_column = $_itemColumn<int>('sheet_id')!;
+
+    final manager = $$CharacterSheetsTableTableManager(
+      $_db,
+      $_db.characterSheets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_sheetIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CharacterSheetEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $CharacterSheetEntriesTable> {
+  $$CharacterSheetEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entryKey => $composableBuilder(
+    column: $table.entryKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entryValue => $composableBuilder(
+    column: $table.entryValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CharacterSheetsTableFilterComposer get sheetId {
+    final $$CharacterSheetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sheetId,
+      referencedTable: $db.characterSheets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharacterSheetsTableFilterComposer(
+            $db: $db,
+            $table: $db.characterSheets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CharacterSheetEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CharacterSheetEntriesTable> {
+  $$CharacterSheetEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entryKey => $composableBuilder(
+    column: $table.entryKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entryValue => $composableBuilder(
+    column: $table.entryValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CharacterSheetsTableOrderingComposer get sheetId {
+    final $$CharacterSheetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sheetId,
+      referencedTable: $db.characterSheets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharacterSheetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.characterSheets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CharacterSheetEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CharacterSheetEntriesTable> {
+  $$CharacterSheetEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get entryKey =>
+      $composableBuilder(column: $table.entryKey, builder: (column) => column);
+
+  GeneratedColumn<String> get entryValue => $composableBuilder(
+    column: $table.entryValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  $$CharacterSheetsTableAnnotationComposer get sheetId {
+    final $$CharacterSheetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.sheetId,
+      referencedTable: $db.characterSheets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CharacterSheetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.characterSheets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CharacterSheetEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CharacterSheetEntriesTable,
+          CharacterSheetEntry,
+          $$CharacterSheetEntriesTableFilterComposer,
+          $$CharacterSheetEntriesTableOrderingComposer,
+          $$CharacterSheetEntriesTableAnnotationComposer,
+          $$CharacterSheetEntriesTableCreateCompanionBuilder,
+          $$CharacterSheetEntriesTableUpdateCompanionBuilder,
+          (CharacterSheetEntry, $$CharacterSheetEntriesTableReferences),
+          CharacterSheetEntry,
+          PrefetchHooks Function({bool sheetId})
+        > {
+  $$CharacterSheetEntriesTableTableManager(
+    _$AppDatabase db,
+    $CharacterSheetEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CharacterSheetEntriesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$CharacterSheetEntriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CharacterSheetEntriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> sheetId = const Value.absent(),
+                Value<int> category = const Value.absent(),
+                Value<String> entryKey = const Value.absent(),
+                Value<String> entryValue = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+              }) => CharacterSheetEntriesCompanion(
+                id: id,
+                sheetId: sheetId,
+                category: category,
+                entryKey: entryKey,
+                entryValue: entryValue,
+                sortOrder: sortOrder,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int sheetId,
+                Value<int> category = const Value.absent(),
+                required String entryKey,
+                required String entryValue,
+                Value<int> sortOrder = const Value.absent(),
+              }) => CharacterSheetEntriesCompanion.insert(
+                id: id,
+                sheetId: sheetId,
+                category: category,
+                entryKey: entryKey,
+                entryValue: entryValue,
+                sortOrder: sortOrder,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CharacterSheetEntriesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({sheetId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (sheetId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.sheetId,
+                                referencedTable:
+                                    $$CharacterSheetEntriesTableReferences
+                                        ._sheetIdTable(db),
+                                referencedColumn:
+                                    $$CharacterSheetEntriesTableReferences
+                                        ._sheetIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CharacterSheetEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CharacterSheetEntriesTable,
+      CharacterSheetEntry,
+      $$CharacterSheetEntriesTableFilterComposer,
+      $$CharacterSheetEntriesTableOrderingComposer,
+      $$CharacterSheetEntriesTableAnnotationComposer,
+      $$CharacterSheetEntriesTableCreateCompanionBuilder,
+      $$CharacterSheetEntriesTableUpdateCompanionBuilder,
+      (CharacterSheetEntry, $$CharacterSheetEntriesTableReferences),
+      CharacterSheetEntry,
+      PrefetchHooks Function({bool sheetId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9557,4 +11548,8 @@ class $AppDatabaseManager {
       $$ReaderBookmarksTableTableManager(_db, _db.readerBookmarks);
   $$ReaderHighlightsTableTableManager get readerHighlights =>
       $$ReaderHighlightsTableTableManager(_db, _db.readerHighlights);
+  $$CharacterSheetsTableTableManager get characterSheets =>
+      $$CharacterSheetsTableTableManager(_db, _db.characterSheets);
+  $$CharacterSheetEntriesTableTableManager get characterSheetEntries =>
+      $$CharacterSheetEntriesTableTableManager(_db, _db.characterSheetEntries);
 }

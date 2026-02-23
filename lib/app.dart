@@ -11,6 +11,7 @@ import 'ui/world_areas/world_areas_screen.dart';
 import 'ui/gallery/gallery_screen.dart';
 import 'ui/mindmap/mindmap_screen.dart';
 import 'ui/reader/epub_reader_screen.dart';
+import 'ui/character_sheet/character_sheet_screen.dart';
 
 CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
   return CustomTransitionPage(
@@ -106,6 +107,14 @@ final _router = GoRouter(
       pageBuilder: (context, state) {
         final id = int.parse(state.pathParameters['id']!);
         return _buildPage(EpubReaderScreen(bookId: id), state);
+      },
+    ),
+    GoRoute(
+      path: '/book/:id/sheets',
+      name: 'character_sheets',
+      pageBuilder: (context, state) {
+        final id = int.parse(state.pathParameters['id']!);
+        return _buildPage(CharacterSheetScreen(bookId: id), state);
       },
     ),
   ],

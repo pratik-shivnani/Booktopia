@@ -10,6 +10,7 @@ import '../data/database/daos/mindmap_dao.dart';
 import '../data/database/daos/epub_file_dao.dart';
 import '../data/database/daos/reader_bookmark_dao.dart';
 import '../data/database/daos/reader_highlight_dao.dart';
+import '../data/database/daos/character_sheet_dao.dart';
 import '../data/repositories/book_repository.dart';
 import '../data/repositories/character_repository.dart';
 import '../data/repositories/note_repository.dart';
@@ -70,6 +71,10 @@ final readerBookmarkDaoProvider = Provider<ReaderBookmarkDao>((ref) {
 
 final readerHighlightDaoProvider = Provider<ReaderHighlightDao>((ref) {
   return ReaderHighlightDao(ref.watch(databaseProvider));
+});
+
+final characterSheetDaoProvider = Provider<CharacterSheetDao>((ref) {
+  return CharacterSheetDao(ref.watch(databaseProvider));
 });
 
 // Repositories

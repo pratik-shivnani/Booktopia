@@ -7,8 +7,11 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/database/app_database.dart' show ReaderBookmarksCompanion, ReaderHighlightsCompanion;
+import 'package:go_router/go_router.dart';
+
+import '../../data/database/app_database.dart' show ReaderBookmarksCompanion, ReaderHighlightsCompanion, CharacterSheetsCompanion, CharacterSheet;
 import '../../data/services/epub_service.dart';
+import '../../data/services/stat_parser.dart';
 import '../../domain/models/epub_data.dart';
 import '../../providers/providers.dart';
 import 'highlight_js.dart';
@@ -339,6 +342,15 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
               label: const Text('Highlight with Note'),
             ),
             const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _updateCharacterSheet(selectedText);
+              },
+              icon: const Icon(Icons.person_search),
+              label: const Text('Update Character Sheet'),
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -569,6 +581,89 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
       'endXPath': endParts[0],
       'endOffset': endParts[1],
     };
+  }
+
+  Future<void> _updateCharacterSheet(String selectedText) async {
+    final parser = StatParser();
+    final parsed = parser.parse(selectedText);
+
+    if (parsed.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No stats found in selected text'), duration: Duration(seconds: 2)),
+        );
+      }
+      return;
+    }
+
+    // Get or create a character sheet
+    final dao = ref.read(characterSheetDaoProvider);
+    final sheets = await dao.watchSheetsByBook(widget.bookId).first;
+
+    CharacterSheet? targetSheet;
+
+    if (sheets.isEmpty) {
+      // Create a new sheet
+      final name = parsed.characterName ?? 'Character';
+      final id = await dao.insertSheet(CharacterSheetsCompanion(
+        bookId: Value(widget.bookId),
+        name: Value(name),
+        level: parsed.level != null ? Value(parsed.level!) : const Value.absent(),
+        className: parsed.className != null ? Value(parsed.className!) : const Value.absent(),
+        lastUpdatedAt: Value(DateTime.now()),
+      ));
+      targetSheet = await dao.getSheetById(id);
+    } else if (sheets.length == 1) {
+      targetSheet = sheets.first;
+    } else {
+      // Let user pick which sheet to update
+      if (!mounted) return;
+      targetSheet = await showDialog<CharacterSheet>(
+        context: context,
+        builder: (ctx) => SimpleDialog(
+          title: const Text('Update which sheet?'),
+          children: sheets.map((s) => SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, s),
+            child: Text(s.name),
+          )).toList(),
+        ),
+      );
+    }
+
+    if (targetSheet == null) return;
+
+    // Update level/class if parsed
+    if (parsed.level != null || parsed.className != null) {
+      await dao.updateSheetMeta(
+        targetSheet.id,
+        level: parsed.level,
+        className: parsed.className,
+      );
+    }
+
+    // Upsert all parsed stats
+    int count = 0;
+    for (final stat in parsed.stats) {
+      await dao.upsertEntry(targetSheet.id, stat.category, stat.key, stat.value);
+      count++;
+    }
+
+    // Clear selection
+    await _webViewController?.evaluateJavascript(source: 'window.getSelection().removeAllRanges();');
+    _pendingSelection = null;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Updated ${targetSheet.name}: $count entries${parsed.level != null ? ', Lv.${parsed.level}' : ''}'),
+          action: SnackBarAction(
+            label: 'View',
+            onPressed: () => context.pushNamed('character_sheets', pathParameters: {'id': '${widget.bookId}'}),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   Future<void> _addBookmark() async {
