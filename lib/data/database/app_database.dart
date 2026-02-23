@@ -17,6 +17,7 @@ part 'app_database.g.dart';
   MindmapEdges,
   EpubFiles,
   ReaderBookmarks,
+  ReaderHighlights,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
@@ -24,7 +25,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -42,6 +43,9 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(epubFiles, epubFiles.fontFamily);
           await m.addColumn(epubFiles, epubFiles.readerTheme);
           await m.addColumn(epubFiles, epubFiles.lineHeight);
+        }
+        if (from < 4) {
+          await m.createTable(readerHighlights);
         }
       },
     );

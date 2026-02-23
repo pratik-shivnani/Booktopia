@@ -84,6 +84,18 @@ class ReaderBookmarks extends Table {
   DateTimeColumn get createdAt => dateTime()();
 }
 
+class ReaderHighlights extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get bookId => integer().references(Books, #id)();
+  IntColumn get chapterIndex => integer()();
+  TextColumn get highlightText => text()();
+  TextColumn get rangeStart => text()();
+  TextColumn get rangeEnd => text()();
+  IntColumn get color => integer().withDefault(const Constant(0xFFFFEB3B))();
+  TextColumn get note => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 class MindmapEdges extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get bookId => integer().references(Books, #id)();

@@ -9,6 +9,7 @@ import '../data/database/daos/book_image_dao.dart';
 import '../data/database/daos/mindmap_dao.dart';
 import '../data/database/daos/epub_file_dao.dart';
 import '../data/database/daos/reader_bookmark_dao.dart';
+import '../data/database/daos/reader_highlight_dao.dart';
 import '../data/repositories/book_repository.dart';
 import '../data/repositories/character_repository.dart';
 import '../data/repositories/note_repository.dart';
@@ -65,6 +66,10 @@ final epubFileDaoProvider = Provider<EpubFileDao>((ref) {
 
 final readerBookmarkDaoProvider = Provider<ReaderBookmarkDao>((ref) {
   return ReaderBookmarkDao(ref.watch(databaseProvider));
+});
+
+final readerHighlightDaoProvider = Provider<ReaderHighlightDao>((ref) {
+  return ReaderHighlightDao(ref.watch(databaseProvider));
 });
 
 // Repositories

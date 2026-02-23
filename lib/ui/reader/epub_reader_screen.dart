@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
@@ -6,10 +7,11 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../data/database/app_database.dart' show ReaderBookmarksCompanion;
+import '../../data/database/app_database.dart' show ReaderBookmarksCompanion, ReaderHighlightsCompanion;
 import '../../data/services/epub_service.dart';
 import '../../domain/models/epub_data.dart';
 import '../../providers/providers.dart';
+import 'highlight_js.dart';
 import 'reader_settings_sheet.dart';
 
 class EpubReaderScreen extends ConsumerStatefulWidget {
@@ -193,6 +195,7 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
         if (el) el.textContent = css;
       }
     </script>
+    <script>$highlightJs</script>
     ''';
 
     if (html.contains('</head>')) {
@@ -256,6 +259,316 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   void _debounceSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 3), _savePosition);
+  }
+
+  // --- Highlight support ---
+
+  Map<String, dynamic>? _pendingSelection;
+
+  static const _highlightColors = [
+    0xFFFFEB3B, // Yellow
+    0xFF81C784, // Green
+    0xFF64B5F6, // Blue
+    0xFFE57373, // Red
+    0xFFFFAB91, // Orange
+    0xFFCE93D8, // Purple
+  ];
+
+  void _onTextSelected(Map<String, dynamic> selectionData) {
+    _pendingSelection = selectionData;
+    _showHighlightMenu(selectionData['text'] as String);
+  }
+
+  void _showHighlightMenu(String selectedText) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text('Highlight', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              '"${selectedText.length > 100 ? '${selectedText.substring(0, 100)}...' : selectedText}"',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            Text('Color', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              children: _highlightColors.map((c) {
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _createHighlight(c);
+                  },
+                  child: Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: Color(c),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _createHighlightWithNote();
+              },
+              icon: const Icon(Icons.note_add),
+              label: const Text('Highlight with Note'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createHighlight(int color, {String? note}) async {
+    if (_pendingSelection == null) return;
+    final sel = _pendingSelection!;
+    final dao = ref.read(readerHighlightDaoProvider);
+
+    final rangeStart = '${sel['startXPath']}|${sel['startOffset']}';
+    final rangeEnd = '${sel['endXPath']}|${sel['endOffset']}';
+
+    final id = await dao.insertHighlight(ReaderHighlightsCompanion(
+      bookId: Value(widget.bookId),
+      chapterIndex: Value(_currentChapter),
+      highlightText: Value(sel['text'] as String),
+      rangeStart: Value(rangeStart),
+      rangeEnd: Value(rangeEnd),
+      color: Value(color),
+      note: Value(note),
+      createdAt: Value(DateTime.now()),
+    ));
+
+    // Apply highlight in WebView
+    final colorHex = 'rgba(${(color >> 16) & 0xFF}, ${(color >> 8) & 0xFF}, ${color & 0xFF}, 0.4)';
+    await _webViewController?.evaluateJavascript(
+      source: jsApplyHighlight(
+        id: id,
+        rangeStart: sel['startXPath'] as String,
+        startOffset: sel['startOffset'] as int,
+        rangeEnd: sel['endXPath'] as String,
+        endOffset: sel['endOffset'] as int,
+        colorHex: colorHex,
+      ),
+    );
+
+    // Clear selection
+    await _webViewController?.evaluateJavascript(source: 'window.getSelection().removeAllRanges();');
+    _pendingSelection = null;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(note != null ? 'Highlighted with note' : 'Highlighted'), duration: const Duration(seconds: 1)),
+      );
+    }
+  }
+
+  void _createHighlightWithNote() {
+    final noteController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Note'),
+        content: TextField(
+          controller: noteController,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Your note...',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.sentences,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _createHighlight(_highlightColors[0], note: noteController.text.trim().isEmpty ? null : noteController.text.trim());
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onHighlightTap(int highlightId) {
+    final dao = ref.read(readerHighlightDaoProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        return FutureBuilder(
+          future: dao.watchByBookAndChapter(widget.bookId, _currentChapter).first,
+          builder: (context, snapshot) {
+            final highlights = snapshot.data ?? [];
+            final hl = highlights.where((h) => h.id == highlightId).firstOrNull;
+            if (hl == null) return const SizedBox.shrink();
+
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 4,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '"${hl.highlightText.length > 150 ? '${hl.highlightText.substring(0, 150)}...' : hl.highlightText}"',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (hl.note != null && hl.note!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.note, size: 16, color: colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(hl.note!, style: Theme.of(context).textTheme.bodySmall)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            _editHighlightNote(highlightId, hl.note);
+                          },
+                          icon: const Icon(Icons.edit_note, size: 18),
+                          label: Text(hl.note != null ? 'Edit Note' : 'Add Note'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            Navigator.pop(ctx);
+                            await dao.deleteHighlight(highlightId);
+                            await _webViewController?.evaluateJavascript(source: jsRemoveHighlight(highlightId));
+                          },
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Remove'),
+                          style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _editHighlightNote(int highlightId, String? currentNote) {
+    final controller = TextEditingController(text: currentNote);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Note'),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          decoration: const InputDecoration(hintText: 'Your note...', border: OutlineInputBorder()),
+          textCapitalization: TextCapitalization.sentences,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              final text = controller.text.trim();
+              ref.read(readerHighlightDaoProvider).updateNote(highlightId, text.isEmpty ? null : text);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadSavedHighlights() async {
+    final dao = ref.read(readerHighlightDaoProvider);
+    final highlights = await dao.watchByBookAndChapter(widget.bookId, _currentChapter).first;
+
+    for (final hl in highlights) {
+      final parts = _parseRange(hl.rangeStart, hl.rangeEnd);
+      if (parts == null) continue;
+      final c = hl.color;
+      final colorHex = 'rgba(${(c >> 16) & 0xFF}, ${(c >> 8) & 0xFF}, ${c & 0xFF}, 0.4)';
+      await _webViewController?.evaluateJavascript(
+        source: jsApplyHighlight(
+          id: hl.id,
+          rangeStart: parts['startXPath']!,
+          startOffset: int.parse(parts['startOffset']!),
+          rangeEnd: parts['endXPath']!,
+          endOffset: int.parse(parts['endOffset']!),
+          colorHex: colorHex,
+        ),
+      );
+    }
+  }
+
+  Map<String, String>? _parseRange(String rangeStart, String rangeEnd) {
+    final startParts = rangeStart.split('|');
+    final endParts = rangeEnd.split('|');
+    if (startParts.length != 2 || endParts.length != 2) return null;
+    return {
+      'startXPath': startParts[0],
+      'startOffset': startParts[1],
+      'endXPath': endParts[0],
+      'endOffset': endParts[1],
+    };
   }
 
   Future<void> _addBookmark() async {
@@ -380,6 +693,28 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
                 },
               );
 
+              controller.addJavaScriptHandler(
+                handlerName: 'onTextSelected',
+                callback: (args) {
+                  if (args.isNotEmpty && mounted) {
+                    try {
+                      final data = jsonDecode(args[0] as String) as Map<String, dynamic>;
+                      _onTextSelected(data);
+                    } catch (_) {}
+                  }
+                },
+              );
+
+              controller.addJavaScriptHandler(
+                handlerName: 'onHighlightTap',
+                callback: (args) {
+                  if (args.isNotEmpty && mounted) {
+                    final id = int.tryParse(args[0].toString());
+                    if (id != null) _onHighlightTap(id);
+                  }
+                },
+              );
+
               // Load the initial chapter
               await _loadChapter(_currentChapter);
             },
@@ -392,6 +727,9 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
                   window.scrollTo(0, maxScroll * $_currentScroll);
                 ''');
               }
+              // Re-apply saved highlights for this chapter
+              await Future.delayed(const Duration(milliseconds: 100));
+              await _loadSavedHighlights();
             },
           ),
 
