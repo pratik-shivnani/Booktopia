@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
@@ -18,27 +16,21 @@ class BookImportSheet extends StatefulWidget {
 class _BookImportSheetState extends State<BookImportSheet> {
   final _service = BookLookupService();
   final _searchController = TextEditingController();
-  Timer? _debounce;
 
-  LookupSource _source = LookupSource.googleBooks;
+  LookupSource _source = LookupSource.openLibrary;
   List<BookLookupResult> _results = [];
   bool _loading = false;
   String? _error;
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
-  void _onSearchChanged(String query) {
-    _debounce?.cancel();
+  void _onSearchSubmitted(String query) {
     if (query.trim().length < 2) return;
-
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      _search(query.trim());
-    });
+    _search(query.trim());
   }
 
   Future<void> _search(String query) async {
@@ -196,10 +188,7 @@ class _BookImportSheetState extends State<BookImportSheet> {
                         : null,
                     isDense: true,
                   ),
-                  onChanged: _onSearchChanged,
-                  onSubmitted: (v) {
-                    if (v.trim().length >= 2) _search(v.trim());
-                  },
+                  onSubmitted: _onSearchSubmitted,
                   textInputAction: TextInputAction.search,
                 ),
               ),

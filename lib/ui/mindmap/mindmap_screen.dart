@@ -11,6 +11,7 @@ import '../../providers/providers.dart';
 import 'mindmap_painter.dart';
 import 'mindmap_dialogs.dart';
 import 'quick_add_sheet.dart';
+import 'package:go_router/go_router.dart';
 
 enum MindmapMode { view, connect }
 
@@ -149,6 +150,19 @@ class _MindmapScreenState extends ConsumerState<MindmapScreen> {
                   _mode = MindmapMode.connect;
                 }
               });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.auto_fix_high),
+            tooltip: 'Auto-extract from EPUB',
+            onPressed: () async {
+              final result = await context.pushNamed<bool>(
+                'extraction_wizard',
+                pathParameters: {'id': '${widget.bookId}'},
+              );
+              if (result == true && mounted) {
+                _hasInitiallyScrolled = false;
+              }
             },
           ),
           IconButton(
