@@ -16,16 +16,38 @@ enum LookupSource {
   final String label;
 }
 
+class RateLimitException implements Exception {
+  final String source;
+  const RateLimitException(this.source);
+  @override
+  String toString() => '$source rate limit exceeded. Try again later or use a different source.';
+}
+
 class BookLookupService {
+  static const _maxRetries = 2;
+  static const _baseDelay = Duration(seconds: 2);
+
   // ─── Google Books API ───────────────────────────────────────────
   Future<List<BookLookupResult>> searchGoogleBooks(String query) async {
     final uri = Uri.parse(
       'https://www.googleapis.com/books/v1/volumes?q=${Uri.encodeComponent(query)}&maxResults=15',
     );
 
-    final response = await http.get(uri);
-    if (response.statusCode != 200) {
-      throw Exception('Google Books API error: ${response.statusCode}');
+    http.Response? response;
+    for (var attempt = 0; attempt <= _maxRetries; attempt++) {
+      response = await http.get(uri);
+      if (response.statusCode == 429) {
+        if (attempt < _maxRetries) {
+          await Future.delayed(_baseDelay * (attempt + 1));
+          continue;
+        }
+        throw const RateLimitException('Google Books');
+      }
+      break;
+    }
+
+    if (response == null || response.statusCode != 200) {
+      throw Exception('Google Books API error: ${response?.statusCode}');
     }
 
     final json = jsonDecode(response.body) as Map<String, dynamic>;

@@ -54,6 +54,24 @@ class _BookImportSheetState extends State<BookImportSheet> {
         LookupSource.epub => <BookLookupResult>[],
       };
       if (mounted) setState(() => _results = results);
+    } on RateLimitException catch (_) {
+      // Auto-fallback to Open Library on Google Books rate limit
+      if (_source == LookupSource.googleBooks && mounted) {
+        setState(() => _source = LookupSource.openLibrary);
+        try {
+          final fallbackResults = await _service.searchOpenLibrary(query);
+          if (mounted) {
+            setState(() {
+              _results = fallbackResults;
+              _error = 'Google Books rate limit hit — switched to Open Library.';
+            });
+          }
+        } catch (e2) {
+          if (mounted) setState(() => _error = 'Google Books rate-limited. Open Library also failed: $e2');
+        }
+      } else {
+        if (mounted) setState(() => _error = 'Rate limit exceeded. Try again later.');
+      }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
