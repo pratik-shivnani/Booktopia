@@ -10,6 +10,7 @@ import '../../domain/models/world_area.dart';
 import '../../providers/providers.dart';
 import 'mindmap_painter.dart';
 import 'mindmap_dialogs.dart';
+import 'quick_add_sheet.dart';
 
 enum MindmapMode { view, connect }
 
@@ -182,6 +183,13 @@ class _MindmapScreenState extends ConsumerState<MindmapScreen> {
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          FloatingActionButton.small(
+            heroTag: 'quickAdd',
+            onPressed: () => _showQuickAddSheet(context),
+            tooltip: 'Quick Add (natural language)',
+            child: const Icon(Icons.auto_fix_high),
+          ),
+          const SizedBox(height: 8),
           FloatingActionButton.small(
             heroTag: 'addNode',
             onPressed: () => _showAddNodeDialog(context),
@@ -418,6 +426,20 @@ class _MindmapScreenState extends ConsumerState<MindmapScreen> {
     } else {
       _showNodeDetails(context, node, edges);
     }
+  }
+
+  void _showQuickAddSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => QuickAddSheet(bookId: widget.bookId),
+    ).then((result) {
+      if (result == true) {
+        // Re-center on nodes after quick add
+        _hasInitiallyScrolled = false;
+      }
+    });
   }
 
   void _showAddNodeDialog(BuildContext context) {
