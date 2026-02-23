@@ -61,6 +61,15 @@ class MindmapNodes extends Table {
   IntColumn get color => integer().withDefault(const Constant(0xFF6750A4))();
 }
 
+class EpubFiles extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get bookId => integer().references(Books, #id)();
+  TextColumn get filePath => text()();
+  IntColumn get currentChapterIndex => integer().withDefault(const Constant(0))();
+  RealColumn get scrollPosition => real().withDefault(const Constant(0.0))();
+  DateTimeColumn get lastReadAt => dateTime().nullable()();
+}
+
 class MindmapEdges extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get bookId => integer().references(Books, #id)();

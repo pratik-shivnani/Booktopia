@@ -3140,6 +3140,427 @@ class MindmapEdgesCompanion extends UpdateCompanion<MindmapEdge> {
   }
 }
 
+class $EpubFilesTable extends EpubFiles
+    with TableInfo<$EpubFilesTable, EpubFile> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EpubFilesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<int> bookId = GeneratedColumn<int>(
+    'book_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES books (id)',
+    ),
+  );
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currentChapterIndexMeta =
+      const VerificationMeta('currentChapterIndex');
+  @override
+  late final GeneratedColumn<int> currentChapterIndex = GeneratedColumn<int>(
+    'current_chapter_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _scrollPositionMeta = const VerificationMeta(
+    'scrollPosition',
+  );
+  @override
+  late final GeneratedColumn<double> scrollPosition = GeneratedColumn<double>(
+    'scroll_position',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _lastReadAtMeta = const VerificationMeta(
+    'lastReadAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastReadAt = GeneratedColumn<DateTime>(
+    'last_read_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    bookId,
+    filePath,
+    currentChapterIndex,
+    scrollPosition,
+    lastReadAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'epub_files';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EpubFile> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('book_id')) {
+      context.handle(
+        _bookIdMeta,
+        bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('current_chapter_index')) {
+      context.handle(
+        _currentChapterIndexMeta,
+        currentChapterIndex.isAcceptableOrUnknown(
+          data['current_chapter_index']!,
+          _currentChapterIndexMeta,
+        ),
+      );
+    }
+    if (data.containsKey('scroll_position')) {
+      context.handle(
+        _scrollPositionMeta,
+        scrollPosition.isAcceptableOrUnknown(
+          data['scroll_position']!,
+          _scrollPositionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_read_at')) {
+      context.handle(
+        _lastReadAtMeta,
+        lastReadAt.isAcceptableOrUnknown(
+          data['last_read_at']!,
+          _lastReadAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EpubFile map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EpubFile(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      bookId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}book_id'],
+      )!,
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      currentChapterIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_chapter_index'],
+      )!,
+      scrollPosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}scroll_position'],
+      )!,
+      lastReadAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_read_at'],
+      ),
+    );
+  }
+
+  @override
+  $EpubFilesTable createAlias(String alias) {
+    return $EpubFilesTable(attachedDatabase, alias);
+  }
+}
+
+class EpubFile extends DataClass implements Insertable<EpubFile> {
+  final int id;
+  final int bookId;
+  final String filePath;
+  final int currentChapterIndex;
+  final double scrollPosition;
+  final DateTime? lastReadAt;
+  const EpubFile({
+    required this.id,
+    required this.bookId,
+    required this.filePath,
+    required this.currentChapterIndex,
+    required this.scrollPosition,
+    this.lastReadAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['book_id'] = Variable<int>(bookId);
+    map['file_path'] = Variable<String>(filePath);
+    map['current_chapter_index'] = Variable<int>(currentChapterIndex);
+    map['scroll_position'] = Variable<double>(scrollPosition);
+    if (!nullToAbsent || lastReadAt != null) {
+      map['last_read_at'] = Variable<DateTime>(lastReadAt);
+    }
+    return map;
+  }
+
+  EpubFilesCompanion toCompanion(bool nullToAbsent) {
+    return EpubFilesCompanion(
+      id: Value(id),
+      bookId: Value(bookId),
+      filePath: Value(filePath),
+      currentChapterIndex: Value(currentChapterIndex),
+      scrollPosition: Value(scrollPosition),
+      lastReadAt: lastReadAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastReadAt),
+    );
+  }
+
+  factory EpubFile.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EpubFile(
+      id: serializer.fromJson<int>(json['id']),
+      bookId: serializer.fromJson<int>(json['bookId']),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      currentChapterIndex: serializer.fromJson<int>(
+        json['currentChapterIndex'],
+      ),
+      scrollPosition: serializer.fromJson<double>(json['scrollPosition']),
+      lastReadAt: serializer.fromJson<DateTime?>(json['lastReadAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'bookId': serializer.toJson<int>(bookId),
+      'filePath': serializer.toJson<String>(filePath),
+      'currentChapterIndex': serializer.toJson<int>(currentChapterIndex),
+      'scrollPosition': serializer.toJson<double>(scrollPosition),
+      'lastReadAt': serializer.toJson<DateTime?>(lastReadAt),
+    };
+  }
+
+  EpubFile copyWith({
+    int? id,
+    int? bookId,
+    String? filePath,
+    int? currentChapterIndex,
+    double? scrollPosition,
+    Value<DateTime?> lastReadAt = const Value.absent(),
+  }) => EpubFile(
+    id: id ?? this.id,
+    bookId: bookId ?? this.bookId,
+    filePath: filePath ?? this.filePath,
+    currentChapterIndex: currentChapterIndex ?? this.currentChapterIndex,
+    scrollPosition: scrollPosition ?? this.scrollPosition,
+    lastReadAt: lastReadAt.present ? lastReadAt.value : this.lastReadAt,
+  );
+  EpubFile copyWithCompanion(EpubFilesCompanion data) {
+    return EpubFile(
+      id: data.id.present ? data.id.value : this.id,
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      currentChapterIndex: data.currentChapterIndex.present
+          ? data.currentChapterIndex.value
+          : this.currentChapterIndex,
+      scrollPosition: data.scrollPosition.present
+          ? data.scrollPosition.value
+          : this.scrollPosition,
+      lastReadAt: data.lastReadAt.present
+          ? data.lastReadAt.value
+          : this.lastReadAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EpubFile(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('filePath: $filePath, ')
+          ..write('currentChapterIndex: $currentChapterIndex, ')
+          ..write('scrollPosition: $scrollPosition, ')
+          ..write('lastReadAt: $lastReadAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    bookId,
+    filePath,
+    currentChapterIndex,
+    scrollPosition,
+    lastReadAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EpubFile &&
+          other.id == this.id &&
+          other.bookId == this.bookId &&
+          other.filePath == this.filePath &&
+          other.currentChapterIndex == this.currentChapterIndex &&
+          other.scrollPosition == this.scrollPosition &&
+          other.lastReadAt == this.lastReadAt);
+}
+
+class EpubFilesCompanion extends UpdateCompanion<EpubFile> {
+  final Value<int> id;
+  final Value<int> bookId;
+  final Value<String> filePath;
+  final Value<int> currentChapterIndex;
+  final Value<double> scrollPosition;
+  final Value<DateTime?> lastReadAt;
+  const EpubFilesCompanion({
+    this.id = const Value.absent(),
+    this.bookId = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.currentChapterIndex = const Value.absent(),
+    this.scrollPosition = const Value.absent(),
+    this.lastReadAt = const Value.absent(),
+  });
+  EpubFilesCompanion.insert({
+    this.id = const Value.absent(),
+    required int bookId,
+    required String filePath,
+    this.currentChapterIndex = const Value.absent(),
+    this.scrollPosition = const Value.absent(),
+    this.lastReadAt = const Value.absent(),
+  }) : bookId = Value(bookId),
+       filePath = Value(filePath);
+  static Insertable<EpubFile> custom({
+    Expression<int>? id,
+    Expression<int>? bookId,
+    Expression<String>? filePath,
+    Expression<int>? currentChapterIndex,
+    Expression<double>? scrollPosition,
+    Expression<DateTime>? lastReadAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (bookId != null) 'book_id': bookId,
+      if (filePath != null) 'file_path': filePath,
+      if (currentChapterIndex != null)
+        'current_chapter_index': currentChapterIndex,
+      if (scrollPosition != null) 'scroll_position': scrollPosition,
+      if (lastReadAt != null) 'last_read_at': lastReadAt,
+    });
+  }
+
+  EpubFilesCompanion copyWith({
+    Value<int>? id,
+    Value<int>? bookId,
+    Value<String>? filePath,
+    Value<int>? currentChapterIndex,
+    Value<double>? scrollPosition,
+    Value<DateTime?>? lastReadAt,
+  }) {
+    return EpubFilesCompanion(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      filePath: filePath ?? this.filePath,
+      currentChapterIndex: currentChapterIndex ?? this.currentChapterIndex,
+      scrollPosition: scrollPosition ?? this.scrollPosition,
+      lastReadAt: lastReadAt ?? this.lastReadAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (bookId.present) {
+      map['book_id'] = Variable<int>(bookId.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (currentChapterIndex.present) {
+      map['current_chapter_index'] = Variable<int>(currentChapterIndex.value);
+    }
+    if (scrollPosition.present) {
+      map['scroll_position'] = Variable<double>(scrollPosition.value);
+    }
+    if (lastReadAt.present) {
+      map['last_read_at'] = Variable<DateTime>(lastReadAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EpubFilesCompanion(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('filePath: $filePath, ')
+          ..write('currentChapterIndex: $currentChapterIndex, ')
+          ..write('scrollPosition: $scrollPosition, ')
+          ..write('lastReadAt: $lastReadAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3150,6 +3571,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $BookImagesTable bookImages = $BookImagesTable(this);
   late final $MindmapNodesTable mindmapNodes = $MindmapNodesTable(this);
   late final $MindmapEdgesTable mindmapEdges = $MindmapEdgesTable(this);
+  late final $EpubFilesTable epubFiles = $EpubFilesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3162,6 +3584,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     bookImages,
     mindmapNodes,
     mindmapEdges,
+    epubFiles,
   ];
 }
 
@@ -3304,6 +3727,24 @@ final class $$BooksTableReferences
     ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_mindmapEdgesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$EpubFilesTable, List<EpubFile>>
+  _epubFilesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.epubFiles,
+    aliasName: $_aliasNameGenerator(db.books.id, db.epubFiles.bookId),
+  );
+
+  $$EpubFilesTableProcessedTableManager get epubFilesRefs {
+    final manager = $$EpubFilesTableTableManager(
+      $_db,
+      $_db.epubFiles,
+    ).filter((f) => f.bookId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_epubFilesRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3519,6 +3960,31 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
           }) => $$MindmapEdgesTableFilterComposer(
             $db: $db,
             $table: $db.mindmapEdges,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> epubFilesRefs(
+    Expression<bool> Function($$EpubFilesTableFilterComposer f) f,
+  ) {
+    final $$EpubFilesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.epubFiles,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EpubFilesTableFilterComposer(
+            $db: $db,
+            $table: $db.epubFiles,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3801,6 +4267,31 @@ class $$BooksTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> epubFilesRefs<T extends Object>(
+    Expression<T> Function($$EpubFilesTableAnnotationComposer a) f,
+  ) {
+    final $$EpubFilesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.epubFiles,
+      getReferencedColumn: (t) => t.bookId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EpubFilesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.epubFiles,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$BooksTableTableManager
@@ -3823,6 +4314,7 @@ class $$BooksTableTableManager
             bool bookImagesRefs,
             bool mindmapNodesRefs,
             bool mindmapEdgesRefs,
+            bool epubFilesRefs,
           })
         > {
   $$BooksTableTableManager(_$AppDatabase db, $BooksTable table)
@@ -3906,6 +4398,7 @@ class $$BooksTableTableManager
                 bookImagesRefs = false,
                 mindmapNodesRefs = false,
                 mindmapEdgesRefs = false,
+                epubFilesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -3916,6 +4409,7 @@ class $$BooksTableTableManager
                     if (bookImagesRefs) db.bookImages,
                     if (mindmapNodesRefs) db.mindmapNodes,
                     if (mindmapEdgesRefs) db.mindmapEdges,
+                    if (epubFilesRefs) db.epubFiles,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -4026,6 +4520,23 @@ class $$BooksTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (epubFilesRefs)
+                        await $_getPrefetchedData<Book, $BooksTable, EpubFile>(
+                          currentTable: table,
+                          referencedTable: $$BooksTableReferences
+                              ._epubFilesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$BooksTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).epubFilesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.bookId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -4053,6 +4564,7 @@ typedef $$BooksTableProcessedTableManager =
         bool bookImagesRefs,
         bool mindmapNodesRefs,
         bool mindmapEdgesRefs,
+        bool epubFilesRefs,
       })
     >;
 typedef $$CharactersTableCreateCompanionBuilder =
@@ -6419,6 +6931,343 @@ typedef $$MindmapEdgesTableProcessedTableManager =
       MindmapEdge,
       PrefetchHooks Function({bool bookId, bool fromNodeId, bool toNodeId})
     >;
+typedef $$EpubFilesTableCreateCompanionBuilder =
+    EpubFilesCompanion Function({
+      Value<int> id,
+      required int bookId,
+      required String filePath,
+      Value<int> currentChapterIndex,
+      Value<double> scrollPosition,
+      Value<DateTime?> lastReadAt,
+    });
+typedef $$EpubFilesTableUpdateCompanionBuilder =
+    EpubFilesCompanion Function({
+      Value<int> id,
+      Value<int> bookId,
+      Value<String> filePath,
+      Value<int> currentChapterIndex,
+      Value<double> scrollPosition,
+      Value<DateTime?> lastReadAt,
+    });
+
+final class $$EpubFilesTableReferences
+    extends BaseReferences<_$AppDatabase, $EpubFilesTable, EpubFile> {
+  $$EpubFilesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $BooksTable _bookIdTable(_$AppDatabase db) => db.books.createAlias(
+    $_aliasNameGenerator(db.epubFiles.bookId, db.books.id),
+  );
+
+  $$BooksTableProcessedTableManager get bookId {
+    final $_column = $_itemColumn<int>('book_id')!;
+
+    final manager = $$BooksTableTableManager(
+      $_db,
+      $_db.books,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_bookIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$EpubFilesTableFilterComposer
+    extends Composer<_$AppDatabase, $EpubFilesTable> {
+  $$EpubFilesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get currentChapterIndex => $composableBuilder(
+    column: $table.currentChapterIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get scrollPosition => $composableBuilder(
+    column: $table.scrollPosition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastReadAt => $composableBuilder(
+    column: $table.lastReadAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$BooksTableFilterComposer get bookId {
+    final $$BooksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableFilterComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EpubFilesTableOrderingComposer
+    extends Composer<_$AppDatabase, $EpubFilesTable> {
+  $$EpubFilesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get currentChapterIndex => $composableBuilder(
+    column: $table.currentChapterIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get scrollPosition => $composableBuilder(
+    column: $table.scrollPosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastReadAt => $composableBuilder(
+    column: $table.lastReadAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$BooksTableOrderingComposer get bookId {
+    final $$BooksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableOrderingComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EpubFilesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EpubFilesTable> {
+  $$EpubFilesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<int> get currentChapterIndex => $composableBuilder(
+    column: $table.currentChapterIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get scrollPosition => $composableBuilder(
+    column: $table.scrollPosition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastReadAt => $composableBuilder(
+    column: $table.lastReadAt,
+    builder: (column) => column,
+  );
+
+  $$BooksTableAnnotationComposer get bookId {
+    final $$BooksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.bookId,
+      referencedTable: $db.books,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$BooksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.books,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EpubFilesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EpubFilesTable,
+          EpubFile,
+          $$EpubFilesTableFilterComposer,
+          $$EpubFilesTableOrderingComposer,
+          $$EpubFilesTableAnnotationComposer,
+          $$EpubFilesTableCreateCompanionBuilder,
+          $$EpubFilesTableUpdateCompanionBuilder,
+          (EpubFile, $$EpubFilesTableReferences),
+          EpubFile,
+          PrefetchHooks Function({bool bookId})
+        > {
+  $$EpubFilesTableTableManager(_$AppDatabase db, $EpubFilesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EpubFilesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EpubFilesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EpubFilesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> bookId = const Value.absent(),
+                Value<String> filePath = const Value.absent(),
+                Value<int> currentChapterIndex = const Value.absent(),
+                Value<double> scrollPosition = const Value.absent(),
+                Value<DateTime?> lastReadAt = const Value.absent(),
+              }) => EpubFilesCompanion(
+                id: id,
+                bookId: bookId,
+                filePath: filePath,
+                currentChapterIndex: currentChapterIndex,
+                scrollPosition: scrollPosition,
+                lastReadAt: lastReadAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int bookId,
+                required String filePath,
+                Value<int> currentChapterIndex = const Value.absent(),
+                Value<double> scrollPosition = const Value.absent(),
+                Value<DateTime?> lastReadAt = const Value.absent(),
+              }) => EpubFilesCompanion.insert(
+                id: id,
+                bookId: bookId,
+                filePath: filePath,
+                currentChapterIndex: currentChapterIndex,
+                scrollPosition: scrollPosition,
+                lastReadAt: lastReadAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$EpubFilesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({bookId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (bookId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.bookId,
+                                referencedTable: $$EpubFilesTableReferences
+                                    ._bookIdTable(db),
+                                referencedColumn: $$EpubFilesTableReferences
+                                    ._bookIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$EpubFilesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EpubFilesTable,
+      EpubFile,
+      $$EpubFilesTableFilterComposer,
+      $$EpubFilesTableOrderingComposer,
+      $$EpubFilesTableAnnotationComposer,
+      $$EpubFilesTableCreateCompanionBuilder,
+      $$EpubFilesTableUpdateCompanionBuilder,
+      (EpubFile, $$EpubFilesTableReferences),
+      EpubFile,
+      PrefetchHooks Function({bool bookId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6437,4 +7286,6 @@ class $AppDatabaseManager {
       $$MindmapNodesTableTableManager(_db, _db.mindmapNodes);
   $$MindmapEdgesTableTableManager get mindmapEdges =>
       $$MindmapEdgesTableTableManager(_db, _db.mindmapEdges);
+  $$EpubFilesTableTableManager get epubFiles =>
+      $$EpubFilesTableTableManager(_db, _db.epubFiles);
 }

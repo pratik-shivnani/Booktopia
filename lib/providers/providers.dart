@@ -7,12 +7,15 @@ import '../data/database/daos/note_dao.dart';
 import '../data/database/daos/world_area_dao.dart';
 import '../data/database/daos/book_image_dao.dart';
 import '../data/database/daos/mindmap_dao.dart';
+import '../data/database/daos/epub_file_dao.dart';
 import '../data/repositories/book_repository.dart';
 import '../data/repositories/character_repository.dart';
 import '../data/repositories/note_repository.dart';
 import '../data/repositories/world_area_repository.dart';
 import '../data/repositories/book_image_repository.dart';
 import '../data/repositories/mindmap_repository.dart';
+import '../data/repositories/epub_repository.dart';
+import '../data/services/epub_service.dart';
 import '../domain/models/book.dart' as domain;
 import '../domain/models/character.dart' as domain_char;
 import '../domain/models/note.dart' as domain_note;
@@ -20,6 +23,7 @@ import '../domain/models/world_area.dart' as domain_area;
 import '../domain/models/book_image.dart' as domain_img;
 import '../domain/models/mindmap_node.dart' as domain_node;
 import '../domain/models/mindmap_edge.dart' as domain_edge;
+import '../domain/models/epub_data.dart' as domain_epub;
 
 // Database
 final databaseProvider = Provider<AppDatabase>((ref) {
@@ -53,6 +57,10 @@ final mindmapDaoProvider = Provider<MindmapDao>((ref) {
   return MindmapDao(ref.watch(databaseProvider));
 });
 
+final epubFileDaoProvider = Provider<EpubFileDao>((ref) {
+  return EpubFileDao(ref.watch(databaseProvider));
+});
+
 // Repositories
 final bookRepositoryProvider = Provider<BookRepository>((ref) {
   return BookRepository(ref.watch(bookDaoProvider));
@@ -76,6 +84,14 @@ final bookImageRepositoryProvider = Provider<BookImageRepository>((ref) {
 
 final mindmapRepositoryProvider = Provider<MindmapRepository>((ref) {
   return MindmapRepository(ref.watch(mindmapDaoProvider));
+});
+
+final epubRepositoryProvider = Provider<EpubRepository>((ref) {
+  return EpubRepository(ref.watch(epubFileDaoProvider));
+});
+
+final epubServiceProvider = Provider<EpubService>((ref) {
+  return EpubService();
 });
 
 // Stream providers
@@ -133,4 +149,10 @@ final mindmapNodesByBookProvider =
 final mindmapEdgesByBookProvider =
     StreamProvider.family<List<domain_edge.MindmapEdge>, int>((ref, bookId) {
   return ref.watch(mindmapRepositoryProvider).watchEdgesByBook(bookId);
+});
+
+// Epub stream providers
+final epubByBookProvider =
+    StreamProvider.family<domain_epub.EpubData?, int>((ref, bookId) {
+  return ref.watch(epubRepositoryProvider).watchByBookId(bookId);
 });

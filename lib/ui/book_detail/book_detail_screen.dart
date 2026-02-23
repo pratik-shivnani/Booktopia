@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../common/platform_image.dart'
     if (dart.library.io) '../common/platform_image_native.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/models/book.dart';
+import '../../domain/models/epub_data.dart';
 import '../../providers/providers.dart';
 
 class BookDetailScreen extends ConsumerWidget {
@@ -148,6 +150,8 @@ class _BookDetailContent extends ConsumerWidget {
                   count: nodeCount,
                   onTap: () => context.pushNamed('mindmap', pathParameters: {'id': '${book.id}'}),
                 ),
+                const SizedBox(height: 12),
+                _EpubReaderCard(book: book),
                 const SizedBox(height: 80),
               ]),
             ),
@@ -402,6 +406,143 @@ class _StatusChip extends StatelessWidget {
       visualDensity: VisualDensity.compact,
       side: BorderSide(color: color.withValues(alpha: 0.3)),
     );
+  }
+}
+
+class _EpubReaderCard extends ConsumerWidget {
+  final Book book;
+
+  const _EpubReaderCard({required this.book});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final epubAsync = ref.watch(epubByBookProvider(book.id!));
+
+    return epubAsync.when(
+      data: (epubData) {
+        final hasEpub = epubData != null;
+
+        return Card(
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: hasEpub
+                  ? colorScheme.tertiaryContainer
+                  : colorScheme.primaryContainer,
+              child: Icon(
+                hasEpub ? Icons.auto_stories : Icons.upload_file,
+                color: hasEpub
+                    ? colorScheme.onTertiaryContainer
+                    : colorScheme.onPrimaryContainer,
+              ),
+            ),
+            title: Text(hasEpub ? 'Read EPUB' : 'Import EPUB'),
+            subtitle: Text(hasEpub
+                ? 'Continue reading · Ch. ${epubData.currentChapterIndex + 1}'
+                : 'Import an EPUB file to read in-app'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasEpub)
+                  IconButton(
+                    icon: Icon(Icons.swap_horiz, size: 20, color: colorScheme.onSurfaceVariant),
+                    tooltip: 'Replace EPUB file',
+                    onPressed: () => _importEpub(context, ref, replace: true),
+                  ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+            onTap: hasEpub
+                ? () => context.pushNamed('reader', pathParameters: {'id': '${book.id}'})
+                : () => _importEpub(context, ref),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        );
+      },
+      loading: () => const Card(
+        child: ListTile(
+          leading: CircleAvatar(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+          title: Text('EPUB Reader'),
+          subtitle: Text('Loading...'),
+        ),
+      ),
+      error: (_, __) => Card(
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: colorScheme.primaryContainer,
+            child: Icon(Icons.upload_file, color: colorScheme.onPrimaryContainer),
+          ),
+          title: const Text('Import EPUB'),
+          subtitle: const Text('Import an EPUB file to read in-app'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _importEpub(context, ref),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importEpub(BuildContext context, WidgetRef ref, {bool replace = false}) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['epub'],
+    );
+
+    if (result == null || result.files.isEmpty) return;
+    final sourcePath = result.files.first.path;
+    if (sourcePath == null) return;
+
+    if (!context.mounted) return;
+
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final service = ref.read(epubServiceProvider);
+      final epubRepo = ref.read(epubRepositoryProvider);
+
+      // Copy EPUB to app storage
+      final destPath = await service.importEpub(sourcePath, book.id!);
+
+      // Delete old entry if replacing
+      if (replace) {
+        await epubRepo.deleteByBookId(book.id!);
+      }
+
+      // Create DB entry
+      await epubRepo.addEpubFile(EpubData(
+        bookId: book.id!,
+        filePath: destPath,
+      ));
+
+      // Parse to get metadata and update book if needed
+      final parsed = await service.parseAndExtract(destPath);
+      if (book.totalPages == 0 && parsed.totalChapters > 0) {
+        await ref.read(bookRepositoryProvider).updateBook(
+          book.copyWith(totalPages: parsed.totalChapters),
+        );
+      }
+
+      if (context.mounted) {
+        Navigator.pop(context); // dismiss loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('EPUB imported: ${parsed.title} (${parsed.totalChapters} chapters)')),
+        );
+        // Navigate to reader
+        context.pushNamed('reader', pathParameters: {'id': '${book.id}'});
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // dismiss loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to import EPUB: $e')),
+        );
+      }
+    }
   }
 }
 
