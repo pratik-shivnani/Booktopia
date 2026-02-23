@@ -41,6 +41,11 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   Timer? _saveTimer;
   double _currentScroll = 0.0;
 
+  // Floating selection toolbar state
+  bool _showSelectionToolbar = false;
+  double _toolbarTop = 0;
+  double _toolbarLeft = 0;
+
   // Reader settings (kept in sync with DB)
   int _fontSize = 18;
   String _fontFamily = 'serif';
@@ -282,79 +287,90 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
 
   void _onTextSelected(Map<String, dynamic> selectionData) {
     _pendingSelection = selectionData;
-    _showHighlightMenu(selectionData['text'] as String);
+
+    // Position the floating toolbar near the selection
+    final rectTop = (selectionData['rectTop'] as num?)?.toDouble() ?? 0;
+    final rectBottom = (selectionData['rectBottom'] as num?)?.toDouble() ?? 0;
+    final rectLeft = (selectionData['rectLeft'] as num?)?.toDouble() ?? 0;
+    final rectRight = (selectionData['rectRight'] as num?)?.toDouble() ?? 0;
+
+    // Account for app bar height (~kToolbarHeight + statusBar)
+    final appBarOffset = MediaQuery.of(context).padding.top + kToolbarHeight;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Place toolbar above the selection, centered horizontally
+    const toolbarHeight = 52.0;
+    const toolbarWidth = 280.0;
+    double top = rectTop + appBarOffset - toolbarHeight - 8;
+    if (top < appBarOffset + 4) {
+      // Not enough room above, place below selection
+      top = rectBottom + appBarOffset + 8;
+    }
+    double left = ((rectLeft + rectRight) / 2) - (toolbarWidth / 2);
+    left = left.clamp(8.0, screenWidth - toolbarWidth - 8);
+
+    setState(() {
+      _toolbarTop = top;
+      _toolbarLeft = left;
+      _showSelectionToolbar = true;
+    });
   }
 
-  void _showHighlightMenu(String selectedText) {
+  void _dismissSelectionToolbar() {
+    if (_showSelectionToolbar) {
+      setState(() => _showSelectionToolbar = false);
+    }
+  }
+
+  Widget _buildSelectionToolbar() {
     final colorScheme = Theme.of(context).colorScheme;
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+    final selectedText = _pendingSelection?['text'] as String? ?? '';
+
+    return Positioned(
+      top: _toolbarTop,
+      left: _toolbarLeft,
+      child: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(12),
+        color: colorScheme.surfaceContainer,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Color circles for quick highlight
+              ..._highlightColors.take(4).map((c) => _ToolbarColorDot(
+                color: Color(c),
+                onTap: () {
+                  _dismissSelectionToolbar();
+                  _createHighlight(c);
+                },
+              )),
+              _ToolbarDivider(),
+              // Note button
+              _ToolbarIconButton(
+                icon: Icons.note_add,
+                tooltip: 'Note',
+                onTap: () {
+                  _dismissSelectionToolbar();
+                  _createHighlightWithNote();
+                },
               ),
-            ),
-            Text('Highlight', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(
-              '"${selectedText.length > 100 ? '${selectedText.substring(0, 100)}...' : selectedText}"',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 16),
-            Text('Color', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              children: _highlightColors.map((c) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _createHighlight(c);
-                  },
-                  child: Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: Color(c),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: colorScheme.outlineVariant),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _createHighlightWithNote();
-              },
-              icon: const Icon(Icons.note_add),
-              label: const Text('Highlight with Note'),
-            ),
-            const SizedBox(height: 8),
-            FilledButton.tonalIcon(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _updateCharacterSheet(selectedText);
-              },
-              icon: const Icon(Icons.person_search),
-              label: const Text('Update Character Sheet'),
-            ),
-            const SizedBox(height: 8),
-          ],
+              // Character sheet button
+              _ToolbarIconButton(
+                icon: Icons.person_search,
+                tooltip: 'Stats',
+                onTap: () {
+                  _dismissSelectionToolbar();
+                  _updateCharacterSheet(selectedText);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -919,6 +935,13 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
               );
 
               controller.addJavaScriptHandler(
+                handlerName: 'onSelectionDismissed',
+                callback: (args) {
+                  if (mounted) _dismissSelectionToolbar();
+                },
+              );
+
+              controller.addJavaScriptHandler(
                 handlerName: 'onHighlightTap',
                 callback: (args) {
                   if (args.isNotEmpty && mounted) {
@@ -945,6 +968,9 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
               await _loadSavedHighlights();
             },
           ),
+
+          // Floating selection toolbar
+          if (_showSelectionToolbar) _buildSelectionToolbar(),
 
           // TOC overlay
           if (_tocOpen) _buildTocDrawer(colorScheme),
@@ -1231,5 +1257,67 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     }
 
     return _parsedEpub!.title;
+  }
+}
+
+// ─── Compact toolbar widgets ─────────────────────────────────────
+
+class _ToolbarColorDot extends StatelessWidget {
+  final Color color;
+  final VoidCallback onTap;
+  const _ToolbarColorDot({required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1.5,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolbarIconButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  const _ToolbarIconButton({required this.icon, required this.tooltip, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolbarDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 24,
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+    );
   }
 }

@@ -118,7 +118,10 @@ const String highlightJs = r'''
     clearTimeout(selectionTimeout);
     selectionTimeout = setTimeout(function() {
       var sel = window.getSelection();
-      if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        window.flutter_inappwebview.callHandler('onSelectionDismissed');
+        return;
+      }
 
       var range = sel.getRangeAt(0);
       var text = sel.toString().trim();
@@ -127,14 +130,21 @@ const String highlightJs = r'''
       var startXPath = getXPath(range.startContainer);
       var endXPath = getXPath(range.endContainer);
 
+      // Get bounding rect of selection for toolbar positioning
+      var rect = range.getBoundingClientRect();
+
       window.flutter_inappwebview.callHandler('onTextSelected', JSON.stringify({
         text: text,
         startXPath: startXPath,
         startOffset: range.startOffset,
         endXPath: endXPath,
-        endOffset: range.endOffset
+        endOffset: range.endOffset,
+        rectTop: rect.top,
+        rectBottom: rect.bottom,
+        rectLeft: rect.left,
+        rectRight: rect.right
       }));
-    }, 500);
+    }, 400);
   });
 
   // Expose functions globally
