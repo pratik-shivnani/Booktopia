@@ -41,10 +41,9 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   Timer? _saveTimer;
   double _currentScroll = 0.0;
 
-  // Floating selection toolbar state
-  bool _showSelectionToolbar = false;
-  double _toolbarTop = 0;
-  double _toolbarLeft = 0;
+  // Floating selection toolbar overlay (renders above platform views)
+  OverlayEntry? _toolbarOverlay;
+  DateTime? _toolbarShownAt;
 
   // Reader settings (kept in sync with DB)
   int _fontSize = 18;
@@ -60,6 +59,8 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
 
   @override
   void dispose() {
+    _toolbarOverlay?.remove();
+    _toolbarOverlay = null;
     _saveTimer?.cancel();
     _savePosition();
     super.dispose();
@@ -297,6 +298,7 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     // Account for app bar height (~kToolbarHeight + statusBar)
     final appBarOffset = MediaQuery.of(context).padding.top + kToolbarHeight;
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     // Place toolbar above the selection, centered horizontally
     const toolbarHeight = 52.0;
@@ -306,74 +308,88 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
       // Not enough room above, place below selection
       top = rectBottom + appBarOffset + 8;
     }
+    // Clamp to screen bounds
+    top = top.clamp(appBarOffset + 4, screenHeight - toolbarHeight - 80);
     double left = ((rectLeft + rectRight) / 2) - (toolbarWidth / 2);
     left = left.clamp(8.0, screenWidth - toolbarWidth - 8);
 
-    setState(() {
-      _toolbarTop = top;
-      _toolbarLeft = left;
-      _showSelectionToolbar = true;
-    });
+    _toolbarShownAt = DateTime.now();
+    _showToolbarOverlay(top, left);
   }
 
-  void _dismissSelectionToolbar() {
-    if (_showSelectionToolbar) {
-      setState(() => _showSelectionToolbar = false);
-    }
-  }
+  void _showToolbarOverlay(double top, double left) {
+    // Remove previous overlay if any
+    _toolbarOverlay?.remove();
+    _toolbarOverlay = null;
 
-  Widget _buildSelectionToolbar() {
-    final colorScheme = Theme.of(context).colorScheme;
     final selectedText = _pendingSelection?['text'] as String? ?? '';
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return Positioned(
-      top: _toolbarTop,
-      left: _toolbarLeft,
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(12),
-        color: colorScheme.surfaceContainer,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Color circles for quick highlight
-              ..._highlightColors.take(4).map((c) => _ToolbarColorDot(
-                color: Color(c),
-                onTap: () {
-                  _dismissSelectionToolbar();
-                  _createHighlight(c);
-                },
-              )),
-              _ToolbarDivider(),
-              // Note button
-              _ToolbarIconButton(
-                icon: Icons.note_add,
-                tooltip: 'Note',
-                onTap: () {
-                  _dismissSelectionToolbar();
-                  _createHighlightWithNote();
-                },
-              ),
-              // Character sheet button
-              _ToolbarIconButton(
-                icon: Icons.person_search,
-                tooltip: 'Stats',
-                onTap: () {
-                  _dismissSelectionToolbar();
-                  _updateCharacterSheet(selectedText);
-                },
-              ),
-            ],
+    _toolbarOverlay = OverlayEntry(
+      builder: (_) => Positioned(
+        top: top,
+        left: left,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: colorScheme.surfaceContainer,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Color circles for quick highlight
+                ..._highlightColors.take(4).map((c) => _ToolbarColorDot(
+                  color: Color(c),
+                  onTap: () {
+                    _dismissSelectionToolbar();
+                    _createHighlight(c);
+                  },
+                )),
+                _ToolbarDivider(color: colorScheme.outlineVariant),
+                // Note button
+                _ToolbarIconButton(
+                  icon: Icons.note_add,
+                  tooltip: 'Note',
+                  iconColor: colorScheme.onSurfaceVariant,
+                  onTap: () {
+                    _dismissSelectionToolbar();
+                    _createHighlightWithNote();
+                  },
+                ),
+                // Character sheet button
+                _ToolbarIconButton(
+                  icon: Icons.person_search,
+                  tooltip: 'Stats',
+                  iconColor: colorScheme.onSurfaceVariant,
+                  onTap: () {
+                    _dismissSelectionToolbar();
+                    _updateCharacterSheet(selectedText);
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+
+    Overlay.of(context).insert(_toolbarOverlay!);
+  }
+
+  void _dismissSelectionToolbar() {
+    // Guard: don't dismiss within 800ms of showing (mobile fires rapid selectionchange events)
+    if (_toolbarOverlay != null &&
+        _toolbarShownAt != null &&
+        DateTime.now().difference(_toolbarShownAt!).inMilliseconds < 800) {
+      return;
+    }
+    _toolbarOverlay?.remove();
+    _toolbarOverlay = null;
   }
 
   Future<void> _createHighlight(int color, {String? note}) async {
@@ -969,9 +985,6 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
             },
           ),
 
-          // Floating selection toolbar
-          if (_showSelectionToolbar) _buildSelectionToolbar(),
-
           // TOC overlay
           if (_tocOpen) _buildTocDrawer(colorScheme),
           // Bookmarks overlay
@@ -1292,7 +1305,8 @@ class _ToolbarIconButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
-  const _ToolbarIconButton({required this.icon, required this.tooltip, required this.onTap});
+  final Color? iconColor;
+  const _ToolbarIconButton({required this.icon, required this.tooltip, required this.onTap, this.iconColor});
 
   @override
   Widget build(BuildContext context) {
@@ -1303,7 +1317,7 @@ class _ToolbarIconButton extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(6),
-          child: Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          child: Icon(icon, size: 20, color: iconColor ?? Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ),
     );
@@ -1311,13 +1325,16 @@ class _ToolbarIconButton extends StatelessWidget {
 }
 
 class _ToolbarDivider extends StatelessWidget {
+  final Color? color;
+  const _ToolbarDivider({this.color});
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 1,
       height: 24,
       margin: const EdgeInsets.symmetric(horizontal: 6),
-      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+      color: (color ?? Theme.of(context).colorScheme.outlineVariant).withValues(alpha: 0.4),
     );
   }
 }
