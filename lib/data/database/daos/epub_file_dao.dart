@@ -50,4 +50,12 @@ class EpubFileDao extends DatabaseAccessor<AppDatabase> with _$EpubFileDaoMixin 
   Future<int> deleteByBookId(int bookId) {
     return (delete(epubFiles)..where((e) => e.bookId.equals(bookId))).go();
   }
+
+  Stream<EpubFile?> watchMostRecentlyRead() {
+    return (select(epubFiles)
+          ..where((e) => e.lastReadAt.isNotNull())
+          ..orderBy([(e) => OrderingTerm.desc(e.lastReadAt)])
+          ..limit(1))
+        .watchSingleOrNull();
+  }
 }

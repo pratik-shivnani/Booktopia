@@ -31,6 +31,10 @@ class EpubRepository {
     return _dao.deleteByBookId(bookId);
   }
 
+  Stream<domain.EpubData?> watchMostRecentlyRead() {
+    return _dao.watchMostRecentlyRead().map((row) => row == null ? null : _toDomain(row));
+  }
+
   Future<void> updateReaderSettings(int id, {int? fontSize, String? fontFamily, ReaderTheme? readerTheme, double? lineHeight}) {
     return _dao.updateReaderSettings(
       id,

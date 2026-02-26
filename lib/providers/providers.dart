@@ -173,6 +173,10 @@ final epubByBookProvider =
   return ref.watch(epubRepositoryProvider).watchByBookId(bookId);
 });
 
+final lastReadEpubProvider = StreamProvider<domain_epub.EpubData?>((ref) {
+  return ref.watch(epubRepositoryProvider).watchMostRecentlyRead();
+});
+
 // Reader bookmark stream providers
 final readerBookmarksByBookProvider =
     StreamProvider.family<List<ReaderBookmarkData>, int>((ref, bookId) {

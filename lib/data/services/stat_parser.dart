@@ -98,6 +98,12 @@ class StatParser {
     caseSensitive: false,
   );
 
+  // --- Multi-class: [ClassName – Level] e.g. [Koschei – 4] [Necromancer – 34] ---
+  static final _multiClassRe = RegExp(
+    r'\[([A-Za-z][\w\s]+?)\s*[-–—]\s*(\d+)\s*\]',
+    caseSensitive: false,
+  );
+
   // --- Skills: [Skill Name (Lvl X)] or Skill Name - Level X or Skill Name (Lv. X) ---
   static final _skillBracketRe = RegExp(
     r'\[([^\]]+?)(?:\s*\(\s*(?:lv\.?|lvl\.?|level)\s*(\d+)\s*\))?\s*\]',
@@ -162,6 +168,28 @@ class StatParser {
       usedRanges.add(_Range(titleMatch.start, titleMatch.end));
     }
 
+    // Multi-class entries: [Name – Level]
+    final classNames = <String>{};
+    String? bestClassName;
+    int bestClassLevel = 0;
+    for (final match in _multiClassRe.allMatches(text)) {
+      if (_overlaps(usedRanges, match.start, match.end)) continue;
+      final cName = match.group(1)!.trim();
+      final cLevel = int.tryParse(match.group(2)!) ?? 0;
+      classNames.add(cName.toLowerCase());
+      if (cLevel > bestClassLevel) {
+        bestClassLevel = cLevel;
+        bestClassName = cName;
+      }
+      stats.add(ParsedStat(key: cName, value: '$cLevel', category: SheetCategory.custom));
+      usedRanges.add(_Range(match.start, match.end));
+    }
+    // Set className from multi-class if not already set
+    if (className == null && bestClassName != null) {
+      className = bestClassName;
+    }
+    if (className != null) classNames.add(className!.toLowerCase());
+
     // Resources
     for (final match in _resourceRe.allMatches(text)) {
       if (_overlaps(usedRanges, match.start, match.end)) continue;
@@ -220,9 +248,25 @@ class StatParser {
       final value = match.group(2)!.trim();
       // Skip if key looks like it was already handled
       if (_isHandledKey(key)) continue;
+      // Skip if key matches a known class name
+      if (classNames.contains(key.toLowerCase())) continue;
       stats.add(ParsedStat(key: key, value: value, category: SheetCategory.custom));
       usedRanges.add(_Range(match.start, match.end));
     }
+
+    // Deduplicate: remove any skill whose key matches a class name
+    stats.removeWhere((s) {
+      if (s.category == SheetCategory.skill) {
+        final keyLower = s.key.toLowerCase();
+        // Check if skill key starts with or equals a class name
+        for (final cn in classNames) {
+          if (keyLower == cn || keyLower.startsWith('$cn ') || keyLower.startsWith('$cn\u2013') || keyLower.startsWith('$cn-')) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
 
     return ParsedSheetData(
       characterName: name,
@@ -294,6 +338,7 @@ class StatParser {
     return const [
       'name', 'character', 'level', 'lv', 'lvl', 'class', 'job',
       'profession', 'race', 'species', 'title', 'occupation', 'role',
+      'total level',
     ].contains(lower);
   }
 }

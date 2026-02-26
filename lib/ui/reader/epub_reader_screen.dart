@@ -14,8 +14,10 @@ import '../../data/services/entity_extractor.dart';
 import '../../data/services/epub_service.dart';
 import '../../data/services/stat_parser.dart';
 import '../../domain/models/epub_data.dart';
+import '../../domain/models/character.dart' as domain_character;
 import '../../domain/models/mindmap_edge.dart' as domain_edge;
 import '../../domain/models/mindmap_node.dart' as domain_node;
+import '../../domain/models/world_area.dart' as domain_worldarea;
 import '../../providers/providers.dart';
 import 'highlight_js.dart';
 import 'reader_settings_sheet.dart';
@@ -54,6 +56,11 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   // Immersive mode — hides app bar + bottom bar on tap
   bool _immersive = false;
 
+  // Auto-scroll
+  bool _autoScrollActive = false;
+  double _autoScrollSpeed = 1.5; // pixels per tick (50ms interval)
+  Timer? _autoScrollTimer;
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +72,7 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     _toolbarOverlay?.remove();
     _toolbarOverlay = null;
     _saveTimer?.cancel();
+    _stopAutoScroll();
     _savePosition();
     super.dispose();
   }
@@ -246,9 +254,22 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
       // Tap in empty area to toggle immersive mode
       document.addEventListener('click', function(e) {
         var sel = window.getSelection();
-        if (sel && !sel.isCollapsed) return; // don't toggle when selecting text
+        if (sel && !sel.isCollapsed) return;
         if (e.target.closest && e.target.closest('.booktopia-highlight')) return;
         window.flutter_inappwebview.callHandler('onTapContent');
+      });
+      // Swipe detection for auto-scroll cancel
+      var _touchStartX = 0, _touchStartY = 0;
+      document.addEventListener('touchstart', function(e) {
+        _touchStartX = e.touches[0].clientX;
+        _touchStartY = e.touches[0].clientY;
+      });
+      document.addEventListener('touchend', function(e) {
+        var dx = e.changedTouches[0].clientX - _touchStartX;
+        var dy = e.changedTouches[0].clientY - _touchStartY;
+        if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          window.flutter_inappwebview.callHandler('onSwipeHorizontal', dx > 0 ? 'right' : 'left');
+        }
       });
     </script>
     <script>$highlightJs</script>
@@ -315,6 +336,33 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   void _debounceSave() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 3), _savePosition);
+  }
+
+  // --- Auto-scroll ---
+
+  void _startAutoScroll() {
+    if (_autoScrollActive) return;
+    setState(() => _autoScrollActive = true);
+    _autoScrollTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+      _webViewController?.evaluateJavascript(
+        source: 'window.scrollBy(0, $_autoScrollSpeed);',
+      );
+    });
+  }
+
+  void _stopAutoScroll() {
+    _autoScrollTimer?.cancel();
+    _autoScrollTimer = null;
+    if (_autoScrollActive && mounted) {
+      setState(() => _autoScrollActive = false);
+    }
+    _autoScrollActive = false;
+  }
+
+  void _adjustAutoScrollSpeed(double delta) {
+    setState(() {
+      _autoScrollSpeed = (_autoScrollSpeed + delta).clamp(0.3, 8.0);
+    });
   }
 
   // --- Highlight support ---
@@ -413,6 +461,27 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
                   onTap: () {
                     _dismissSelectionToolbar();
                     _updateCharacterSheet(selectedText);
+                  },
+                ),
+                _ToolbarDivider(color: colorScheme.outlineVariant),
+                // Add as Character
+                _ToolbarIconButton(
+                  icon: Icons.person_add,
+                  tooltip: 'Add Character',
+                  iconColor: colorScheme.onSurfaceVariant,
+                  onTap: () {
+                    _dismissSelectionToolbar();
+                    _addSelectionAsCharacter(selectedText);
+                  },
+                ),
+                // Add as World Area
+                _ToolbarIconButton(
+                  icon: Icons.map_outlined,
+                  tooltip: 'Add World Area',
+                  iconColor: colorScheme.onSurfaceVariant,
+                  onTap: () {
+                    _dismissSelectionToolbar();
+                    _addSelectionAsWorldArea(selectedText);
                   },
                 ),
               ],
@@ -745,6 +814,90 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     }
   }
 
+  Future<void> _addSelectionAsCharacter(String selectedText) async {
+    final name = selectedText.trim().split('\n').first.trim();
+    if (name.isEmpty || name.length > 100) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select a character name'), duration: Duration(seconds: 2)),
+        );
+      }
+      return;
+    }
+
+    // Check for duplicates
+    final existing = await ref.read(characterRepositoryProvider).watchCharactersByBook(widget.bookId).first;
+    if (existing.any((c) => c.name.toLowerCase() == name.toLowerCase())) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"$name" already exists as a character'), duration: const Duration(seconds: 2)),
+        );
+      }
+      return;
+    }
+
+    await ref.read(characterRepositoryProvider).addCharacter(
+      domain_character.Character(bookId: widget.bookId, name: name),
+    );
+    await _webViewController?.evaluateJavascript(source: 'window.getSelection().removeAllRanges();');
+    _pendingSelection = null;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Added character: $name'),
+          action: SnackBarAction(
+            label: 'Mindmap',
+            onPressed: () => context.pushNamed('mindmap', pathParameters: {'id': '${widget.bookId}'}),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _addSelectionAsWorldArea(String selectedText) async {
+    final name = selectedText.trim().split('\n').first.trim();
+    if (name.isEmpty || name.length > 100) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select a location name'), duration: Duration(seconds: 2)),
+        );
+      }
+      return;
+    }
+
+    // Check for duplicates
+    final existing = await ref.read(worldAreaRepositoryProvider).watchWorldAreasByBook(widget.bookId).first;
+    if (existing.any((w) => w.name.toLowerCase() == name.toLowerCase())) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"$name" already exists as a world area'), duration: const Duration(seconds: 2)),
+        );
+      }
+      return;
+    }
+
+    await ref.read(worldAreaRepositoryProvider).addWorldArea(
+      domain_worldarea.WorldArea(bookId: widget.bookId, name: name),
+    );
+    await _webViewController?.evaluateJavascript(source: 'window.getSelection().removeAllRanges();');
+    _pendingSelection = null;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Added world area: $name'),
+          action: SnackBarAction(
+            label: 'Mindmap',
+            onPressed: () => context.pushNamed('mindmap', pathParameters: {'id': '${widget.bookId}'}),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Future<void> _syncMindmap() async {
     if (_parsedEpub == null) return;
 
@@ -936,35 +1089,41 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.hub_outlined),
-                  tooltip: 'Sync Mindmap',
-                  onPressed: _syncMindmap,
+                  icon: Icon(_autoScrollActive ? Icons.stop_circle_outlined : Icons.slow_motion_video),
+                  tooltip: _autoScrollActive ? 'Stop auto-scroll' : 'Auto-scroll',
+                  onPressed: _autoScrollActive ? _stopAutoScroll : _startAutoScroll,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.person_outline),
+                  tooltip: 'Character Sheet',
+                  onPressed: () => context.pushNamed('characterSheets', pathParameters: {'id': '${widget.bookId}'}),
                 ),
                 IconButton(
                   icon: const Icon(Icons.bookmark_add_outlined),
                   tooltip: 'Add bookmark',
                   onPressed: _addBookmark,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.bookmarks_outlined),
-                  tooltip: 'Bookmarks',
-                  onPressed: () => setState(() {
-                    _bookmarksOpen = !_bookmarksOpen;
-                    _tocOpen = false;
-                  }),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.list),
-                  tooltip: 'Table of Contents',
-                  onPressed: () => setState(() {
-                    _tocOpen = !_tocOpen;
-                    _bookmarksOpen = false;
-                  }),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined),
-                  tooltip: 'Reader settings',
-                  onPressed: _showSettings,
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  tooltip: 'More',
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'mindmap':
+                        _syncMindmap();
+                      case 'bookmarks':
+                        setState(() { _bookmarksOpen = !_bookmarksOpen; _tocOpen = false; });
+                      case 'toc':
+                        setState(() { _tocOpen = !_tocOpen; _bookmarksOpen = false; });
+                      case 'settings':
+                        _showSettings();
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'toc', child: ListTile(leading: Icon(Icons.list), title: Text('Table of Contents'), dense: true, contentPadding: EdgeInsets.zero)),
+                    const PopupMenuItem(value: 'bookmarks', child: ListTile(leading: Icon(Icons.bookmarks_outlined), title: Text('Bookmarks'), dense: true, contentPadding: EdgeInsets.zero)),
+                    const PopupMenuItem(value: 'mindmap', child: ListTile(leading: Icon(Icons.hub_outlined), title: Text('Sync Mindmap'), dense: true, contentPadding: EdgeInsets.zero)),
+                    const PopupMenuItem(value: 'settings', child: ListTile(leading: Icon(Icons.settings_outlined), title: Text('Reader Settings'), dense: true, contentPadding: EdgeInsets.zero)),
+                  ],
                 ),
               ],
             ),
@@ -1029,12 +1188,27 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
               controller.addJavaScriptHandler(
                 handlerName: 'onTapContent',
                 callback: (args) {
-                  if (mounted) {
+                  if (!mounted) return;
+                  if (_autoScrollActive) {
+                    _stopAutoScroll();
+                  } else {
                     setState(() {
                       _immersive = !_immersive;
                       _tocOpen = false;
                       _bookmarksOpen = false;
                     });
+                  }
+                },
+              );
+
+              controller.addJavaScriptHandler(
+                handlerName: 'onSwipeHorizontal',
+                callback: (args) {
+                  if (_autoScrollActive && mounted) {
+                    _stopAutoScroll();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Auto-scroll cancelled'), duration: Duration(seconds: 1)),
+                    );
                   }
                 },
               );
@@ -1061,11 +1235,80 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
           if (_tocOpen) _buildTocDrawer(colorScheme),
           // Bookmarks overlay
           if (_bookmarksOpen) _buildBookmarksDrawer(colorScheme),
+          // Auto-scroll speed overlay
+          if (_autoScrollActive) _buildAutoScrollOverlay(bgColor, fgColor, fgDim),
         ],
       ),
       bottomNavigationBar: _immersive
           ? null
           : _buildBottomBar(bgColor, fgColor, fgDim, chapterTitle, bookProgress),
+    );
+  }
+
+  Widget _buildAutoScrollOverlay(Color bgColor, Color fgColor, Color fgDim) {
+    return Positioned(
+      bottom: 24,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: bgColor.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: fgColor.withValues(alpha: 0.2)),
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.speed, size: 18, color: fgDim),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => _adjustAutoScrollSpeed(-0.3),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: fgColor.withValues(alpha: 0.1),
+                  ),
+                  child: Icon(Icons.remove, size: 18, color: fgColor),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  '${_autoScrollSpeed.toStringAsFixed(1)}x',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fgColor),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _adjustAutoScrollSpeed(0.3),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: fgColor.withValues(alpha: 0.1),
+                  ),
+                  child: Icon(Icons.add, size: 18, color: fgColor),
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: _stopAutoScroll,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.red.withValues(alpha: 0.15),
+                  ),
+                  child: const Icon(Icons.close, size: 18, color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

@@ -83,18 +83,27 @@ class BookshelfScreen extends ConsumerWidget {
           ),
         ),
       ),
-      body: booksAsync.when(
-        data: (books) {
-          if (books.isEmpty) {
-            return _EmptyState(hasFilter: selectedStatus != null || searchQuery.isNotEmpty);
-          }
-          final sorted = _sortBooks(books, sortOption);
-          return _BookGrid(books: sorted);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(
-          child: Text('Error: $error'),
-        ),
+      body: Column(
+        children: [
+          // Continue Reading card
+          const _ContinueReadingCard(),
+          // Book grid
+          Expanded(
+            child: booksAsync.when(
+              data: (books) {
+                if (books.isEmpty) {
+                  return _EmptyState(hasFilter: selectedStatus != null || searchQuery.isNotEmpty);
+                }
+                final sorted = _sortBooks(books, sortOption);
+                return _BookGrid(books: sorted);
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => Center(
+                child: Text('Error: $error'),
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.pushNamed('addBook'),
@@ -405,6 +414,122 @@ class _StatusBadge extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
       ),
+    );
+  }
+}
+
+class _ContinueReadingCard extends ConsumerWidget {
+  const _ContinueReadingCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lastEpub = ref.watch(lastReadEpubProvider);
+
+    return lastEpub.when(
+      data: (epub) {
+        if (epub == null) return const SizedBox.shrink();
+        final bookAsync = ref.watch(bookByIdProvider(epub.bookId));
+        return bookAsync.when(
+          data: (book) {
+            final colorScheme = Theme.of(context).colorScheme;
+            final textTheme = Theme.of(context).textTheme;
+            final progress = book.totalPages > 0 ? book.progress : 0.0;
+
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Card(
+                elevation: 0,
+                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => context.pushNamed('reader', pathParameters: {'id': '${book.id}'}),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        // Book cover thumbnail
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                            width: 44,
+                            height: 62,
+                            child: fileExists(book.coverImagePath)
+                                ? fileImageWidget(book.coverImagePath!, fit: BoxFit.cover)
+                                : Container(
+                                    color: colorScheme.primaryContainer,
+                                    child: Icon(Icons.menu_book, size: 24, color: colorScheme.primary),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Continue Reading',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                book.title,
+                                style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                book.author,
+                                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (progress > 0) ...[
+                                const SizedBox(height: 6),
+                                LinearProgressIndicator(
+                                  value: progress,
+                                  borderRadius: BorderRadius.circular(4),
+                                  minHeight: 4,
+                                  backgroundColor: colorScheme.surfaceContainerHighest,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_circle_filled, size: 32, color: colorScheme.primary),
+                            if (progress > 0)
+                              Text(
+                                '${(progress * 100).toInt()}%',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }
