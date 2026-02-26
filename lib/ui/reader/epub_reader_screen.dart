@@ -51,6 +51,9 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   ReaderTheme _readerTheme = ReaderTheme.light;
   double _lineHeight = 1.7;
 
+  // Immersive mode — hides app bar + bottom bar on tap
+  bool _immersive = false;
+
   @override
   void initState() {
     super.initState();
@@ -139,12 +142,36 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   String _cssColors() {
     switch (_readerTheme) {
       case ReaderTheme.dark:
-        return 'color: #CCCCCC; background: #1A1A1A;';
+        return 'color: #CCCCCC !important; background: #1A1A1A !important;';
       case ReaderTheme.sepia:
-        return 'color: #5B4636; background: #F5E6C8;';
+        return 'color: #5B4636 !important; background: #F5E6C8 !important;';
       case ReaderTheme.light:
       default:
-        return 'color: #222222; background: #FAFAFA;';
+        return 'color: #222222 !important; background: #FAFAFA !important;';
+    }
+  }
+
+  Color _scaffoldBgColor() {
+    switch (_readerTheme) {
+      case ReaderTheme.dark:
+        return const Color(0xFF1A1A1A);
+      case ReaderTheme.sepia:
+        return const Color(0xFFF5E6C8);
+      case ReaderTheme.light:
+      default:
+        return const Color(0xFFFAFAFA);
+    }
+  }
+
+  Color _scaffoldFgColor() {
+    switch (_readerTheme) {
+      case ReaderTheme.dark:
+        return const Color(0xFFCCCCCC);
+      case ReaderTheme.sepia:
+        return const Color(0xFF5B4636);
+      case ReaderTheme.light:
+      default:
+        return const Color(0xFF222222);
     }
   }
 
@@ -162,31 +189,41 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
 
   String _buildReaderCss() {
     return '''
+      * {
+        font-family: ${_cssFontStack()} !important;
+        font-size: inherit !important;
+        line-height: inherit !important;
+      }
       body {
-        font-family: ${_cssFontStack()};
-        font-size: ${_fontSize}px;
-        line-height: $_lineHeight;
+        font-family: ${_cssFontStack()} !important;
+        font-size: ${_fontSize}px !important;
+        line-height: ${_lineHeight}em !important;
         ${_cssColors()}
-        padding: 16px 20px 80px 20px;
-        margin: 0;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-        -webkit-text-size-adjust: 100%;
-        transition: background 0.3s, color 0.3s;
+        padding: 24px 24px 80px 24px !important;
+        margin: 0 !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+        -webkit-text-size-adjust: none !important;
+        text-size-adjust: none !important;
+        text-align: justify !important;
       }
       img {
-        max-width: 100%;
-        height: auto;
+        max-width: 100% !important;
+        height: auto !important;
       }
       h1, h2, h3, h4, h5, h6 {
-        line-height: 1.3;
-        margin-top: 1.5em;
+        font-size: 1.2em !important;
+        line-height: 1.3 !important;
+        margin-top: 1.2em !important;
+        text-align: left !important;
       }
       p {
-        margin-bottom: 0.8em;
+        margin-bottom: 0.6em !important;
+        margin-top: 0 !important;
+        text-indent: 0 !important;
       }
       a {
-        color: ${_cssLinkColor()};
+        color: ${_cssLinkColor()} !important;
       }
     ''';
   }
@@ -206,6 +243,13 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
         var el = document.getElementById('booktopia-reader-style');
         if (el) el.textContent = css;
       }
+      // Tap in empty area to toggle immersive mode
+      document.addEventListener('click', function(e) {
+        var sel = window.getSelection();
+        if (sel && !sel.isCollapsed) return; // don't toggle when selecting text
+        if (e.target.closest && e.target.closest('.booktopia-highlight')) return;
+        window.flutter_inappwebview.callHandler('onTapContent');
+      });
     </script>
     <script>$highlightJs</script>
     ''';
@@ -859,58 +903,71 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     }
 
     final chapterTitle = _getChapterTitle();
+    final total = _parsedEpub?.totalChapters ?? 1;
+    final bookProgress = total > 0 ? ((_currentChapter + _currentScroll) / total * 100) : 0.0;
+    final bgColor = _scaffoldBgColor();
+    final fgColor = _scaffoldFgColor();
+    final fgDim = fgColor.withValues(alpha: 0.5);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              chapterTitle,
-              style: const TextStyle(fontSize: 14),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      backgroundColor: bgColor,
+      extendBodyBehindAppBar: true,
+      appBar: _immersive
+          ? null
+          : AppBar(
+              backgroundColor: bgColor.withValues(alpha: 0.95),
+              foregroundColor: fgColor,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    chapterTitle,
+                    style: TextStyle(fontSize: 14, color: fgColor),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Chapter ${_currentChapter + 1} of $total',
+                    style: TextStyle(fontSize: 11, color: fgDim),
+                  ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.hub_outlined),
+                  tooltip: 'Sync Mindmap',
+                  onPressed: _syncMindmap,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bookmark_add_outlined),
+                  tooltip: 'Add bookmark',
+                  onPressed: _addBookmark,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.bookmarks_outlined),
+                  tooltip: 'Bookmarks',
+                  onPressed: () => setState(() {
+                    _bookmarksOpen = !_bookmarksOpen;
+                    _tocOpen = false;
+                  }),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.list),
+                  tooltip: 'Table of Contents',
+                  onPressed: () => setState(() {
+                    _tocOpen = !_tocOpen;
+                    _bookmarksOpen = false;
+                  }),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  tooltip: 'Reader settings',
+                  onPressed: _showSettings,
+                ),
+              ],
             ),
-            Text(
-              'Chapter ${_currentChapter + 1} of ${_parsedEpub!.totalChapters}',
-              style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.hub_outlined),
-            tooltip: 'Sync Mindmap',
-            onPressed: _syncMindmap,
-          ),
-          IconButton(
-            icon: const Icon(Icons.bookmark_add_outlined),
-            tooltip: 'Add bookmark',
-            onPressed: _addBookmark,
-          ),
-          IconButton(
-            icon: const Icon(Icons.bookmarks_outlined),
-            tooltip: 'Bookmarks',
-            onPressed: () => setState(() {
-              _bookmarksOpen = !_bookmarksOpen;
-              _tocOpen = false;
-            }),
-          ),
-          IconButton(
-            icon: const Icon(Icons.list),
-            tooltip: 'Table of Contents',
-            onPressed: () => setState(() {
-              _tocOpen = !_tocOpen;
-              _bookmarksOpen = false;
-            }),
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Reader settings',
-            onPressed: _showSettings,
-          ),
-        ],
-      ),
       body: Stack(
         children: [
           // WebView reader
@@ -934,6 +991,8 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
                     final pos = (args[0] as num).toDouble().clamp(0.0, 1.0);
                     _currentScroll = pos;
                     _debounceSave();
+                    // Update progress in bottom bar
+                    if (mounted) setState(() {});
                   }
                 },
               );
@@ -967,6 +1026,19 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
                 },
               );
 
+              controller.addJavaScriptHandler(
+                handlerName: 'onTapContent',
+                callback: (args) {
+                  if (mounted) {
+                    setState(() {
+                      _immersive = !_immersive;
+                      _tocOpen = false;
+                      _bookmarksOpen = false;
+                    });
+                  }
+                },
+              );
+
               // Load the initial chapter
               await _loadChapter(_currentChapter);
             },
@@ -991,7 +1063,9 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
           if (_bookmarksOpen) _buildBookmarksDrawer(colorScheme),
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(colorScheme),
+      bottomNavigationBar: _immersive
+          ? null
+          : _buildBottomBar(bgColor, fgColor, fgDim, chapterTitle, bookProgress),
     );
   }
 
@@ -1012,51 +1086,75 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     );
   }
 
-  Widget _buildBottomBar(ColorScheme colorScheme) {
+  Widget _buildBottomBar(Color bgColor, Color fgColor, Color fgDim, String chapterTitle, double bookProgress) {
     final total = _parsedEpub?.totalChapters ?? 1;
-    final progress = total > 0 ? (_currentChapter + 1) / total : 0.0;
 
     return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(top: BorderSide(color: colorScheme.outlineVariant, width: 0.5)),
-      ),
+      color: bgColor,
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            LinearProgressIndicator(
-              value: progress,
-              minHeight: 3,
-              backgroundColor: colorScheme.surfaceContainerHighest,
-              valueColor: AlwaysStoppedAnimation(colorScheme.primary),
-            ),
+            // Chapter navigation row
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.chevron_left),
+                    icon: Icon(Icons.chevron_left, color: fgColor),
                     onPressed: _currentChapter > 0
                         ? () => _loadChapter(_currentChapter - 1)
                         : null,
+                    visualDensity: VisualDensity.compact,
                     tooltip: 'Previous chapter',
                   ),
                   Expanded(
-                    child: Slider(
-                      value: _currentChapter.toDouble(),
-                      min: 0,
-                      max: (total - 1).toDouble().clamp(0, double.infinity),
-                      divisions: total > 1 ? total - 1 : null,
-                      onChanged: (v) => _loadChapter(v.round()),
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        activeTrackColor: fgColor.withValues(alpha: 0.4),
+                        inactiveTrackColor: fgColor.withValues(alpha: 0.15),
+                        thumbColor: fgColor.withValues(alpha: 0.6),
+                        overlayColor: fgColor.withValues(alpha: 0.1),
+                        trackHeight: 3,
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                      ),
+                      child: Slider(
+                        value: _currentChapter.toDouble(),
+                        min: 0,
+                        max: (total - 1).toDouble().clamp(0, double.infinity),
+                        divisions: total > 1 ? total - 1 : null,
+                        onChanged: (v) => _loadChapter(v.round()),
+                      ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.chevron_right),
+                    icon: Icon(Icons.chevron_right, color: fgColor),
                     onPressed: _currentChapter < total - 1
                         ? () => _loadChapter(_currentChapter + 1)
                         : null,
+                    visualDensity: VisualDensity.compact,
                     tooltip: 'Next chapter',
+                  ),
+                ],
+              ),
+            ),
+            // Progress info row (Moon+ style)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Ch${_currentChapter + 1}/$total \u00B7 $chapterTitle',
+                      style: TextStyle(fontSize: 11, color: fgDim),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${bookProgress.toStringAsFixed(1)}%',
+                    style: TextStyle(fontSize: 11, color: fgDim, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
