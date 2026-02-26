@@ -36,6 +36,15 @@ class CharacterSheetDao extends DatabaseAccessor<AppDatabase> with _$CharacterSh
     return update(characterSheets).replace(sheet);
   }
 
+  Future<void> updateSheetName(int id, String name) {
+    return (update(characterSheets)..where((s) => s.id.equals(id))).write(
+      CharacterSheetsCompanion(
+        name: Value(name),
+        lastUpdatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
   Future<void> updateSheetMeta(int id, {int? level, String? className}) {
     return (update(characterSheets)..where((s) => s.id.equals(id))).write(
       CharacterSheetsCompanion(

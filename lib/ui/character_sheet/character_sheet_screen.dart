@@ -176,7 +176,7 @@ class _SheetContent extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Header card
+                // Header card — tap name to rename
                 Card(
                   color: colorScheme.primaryContainer,
                   child: Padding(
@@ -187,36 +187,54 @@ class _SheetContent extends ConsumerWidget {
                         Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                sheet.name,
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  color: colorScheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.bold,
+                              child: GestureDetector(
+                                onTap: () => _renameSheet(context, ref, sheet),
+                                child: Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        sheet.name,
+                                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                          color: colorScheme.onPrimaryContainer,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Icon(Icons.edit, size: 16, color: colorScheme.onPrimaryContainer.withValues(alpha: 0.5)),
+                                  ],
                                 ),
                               ),
                             ),
                             PopupMenuButton<String>(
                               onSelected: (v) {
-                                if (v == 'delete') onDelete();
+                                if (v == 'rename') _renameSheet(context, ref, sheet);
                                 if (v == 'edit_meta') _editMeta(context, ref, sheet);
+                                if (v == 'delete') _confirmDelete(context, onDelete);
                               },
                               itemBuilder: (_) => [
-                                const PopupMenuItem(value: 'edit_meta', child: Text('Edit Level/Class')),
-                                const PopupMenuItem(value: 'delete', child: Text('Delete Sheet')),
+                                const PopupMenuItem(value: 'rename', child: ListTile(leading: Icon(Icons.edit), title: Text('Rename'), dense: true, contentPadding: EdgeInsets.zero)),
+                                const PopupMenuItem(value: 'edit_meta', child: ListTile(leading: Icon(Icons.tune), title: Text('Edit Level/Class'), dense: true, contentPadding: EdgeInsets.zero)),
+                                PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete, color: colorScheme.error), title: Text('Delete Sheet', style: TextStyle(color: colorScheme.error)), dense: true, contentPadding: EdgeInsets.zero)),
                               ],
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            if (sheet.level != null)
-                              _Badge('Lv. ${sheet.level}', colorScheme.tertiary, colorScheme.onTertiary),
-                            if (sheet.className != null) ...[
-                              const SizedBox(width: 8),
-                              _Badge(sheet.className!, colorScheme.secondary, colorScheme.onSecondary),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () => _editMeta(context, ref, sheet),
+                          child: Row(
+                            children: [
+                              if (sheet.level != null)
+                                _Badge('Lv. ${sheet.level}', colorScheme.tertiary, colorScheme.onTertiary),
+                              if (sheet.className != null) ...[
+                                const SizedBox(width: 8),
+                                _Badge(sheet.className!, colorScheme.secondary, colorScheme.onSecondary),
+                              ],
+                              if (sheet.level == null && sheet.className == null)
+                                Text('Tap to set level & class', style: TextStyle(fontSize: 12, color: colorScheme.onPrimaryContainer.withValues(alpha: 0.5), fontStyle: FontStyle.italic)),
                             ],
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -226,7 +244,7 @@ class _SheetContent extends ConsumerWidget {
 
                 if (resources.isNotEmpty) ...[
                   _SectionHeader('Resources', Icons.favorite, colorScheme.error),
-                  ...resources.map((e) => _ResourceTile(entry: e)),
+                  ...resources.map((e) => _EditableResourceTile(entry: e, dao: dao)),
                   const SizedBox(height: 12),
                 ],
 
@@ -235,26 +253,26 @@ class _SheetContent extends ConsumerWidget {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: stats.map((e) => _StatChip(entry: e)).toList(),
+                    children: stats.map((e) => _EditableStatChip(entry: e, dao: dao)).toList(),
                   ),
                   const SizedBox(height: 12),
                 ],
 
                 if (skills.isNotEmpty) ...[
                   _SectionHeader('Skills', Icons.auto_awesome, colorScheme.tertiary),
-                  ...skills.map((e) => _EntryTile(entry: e, dao: dao)),
+                  ...skills.map((e) => _EditableEntryTile(entry: e, dao: dao)),
                   const SizedBox(height: 12),
                 ],
 
                 if (abilities.isNotEmpty) ...[
                   _SectionHeader('Abilities', Icons.flash_on, Colors.amber),
-                  ...abilities.map((e) => _EntryTile(entry: e, dao: dao)),
+                  ...abilities.map((e) => _EditableEntryTile(entry: e, dao: dao)),
                   const SizedBox(height: 12),
                 ],
 
                 if (custom.isNotEmpty) ...[
                   _SectionHeader('Info', Icons.info_outline, colorScheme.onSurfaceVariant),
-                  ...custom.map((e) => _EntryTile(entry: e, dao: dao)),
+                  ...custom.map((e) => _EditableEntryTile(entry: e, dao: dao)),
                   const SizedBox(height: 12),
                 ],
 
@@ -285,6 +303,40 @@ class _SheetContent extends ConsumerWidget {
     );
   }
 
+  void _renameSheet(BuildContext context, WidgetRef ref, CharacterSheet sheet) {
+    final nameCtrl = TextEditingController(text: sheet.name);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename Character'),
+        content: TextField(
+          controller: nameCtrl,
+          decoration: const InputDecoration(labelText: 'Character Name', border: OutlineInputBorder()),
+          textCapitalization: TextCapitalization.words,
+          autofocus: true,
+          onSubmitted: (_) {
+            final name = nameCtrl.text.trim();
+            if (name.isEmpty) return;
+            Navigator.pop(ctx);
+            ref.read(characterSheetDaoProvider).updateSheetName(sheetId, name);
+          },
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(ctx);
+              ref.read(characterSheetDaoProvider).updateSheetName(sheetId, name);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _editMeta(BuildContext context, WidgetRef ref, CharacterSheet sheet) {
     final levelCtrl = TextEditingController(text: sheet.level?.toString() ?? '');
     final classCtrl = TextEditingController(text: sheet.className ?? '');
@@ -312,6 +364,27 @@ class _SheetContent extends ConsumerWidget {
               );
             },
             child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, VoidCallback onDelete) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Sheet?'),
+        content: const Text('This will permanently delete this character sheet and all its entries.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            onPressed: () {
+              Navigator.pop(ctx);
+              onDelete();
+            },
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -402,9 +475,10 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _ResourceTile extends StatelessWidget {
+class _EditableResourceTile extends StatelessWidget {
   final CharacterSheetEntry entry;
-  const _ResourceTile({required this.entry});
+  final dynamic dao;
+  const _EditableResourceTile({required this.entry, required this.dao});
 
   @override
   Widget build(BuildContext context) {
@@ -420,31 +494,53 @@ class _ResourceTile extends StatelessWidget {
     }
     final barColor = _resourceColor(entry.entryKey);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Dismissible(
+      key: ValueKey(entry.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        color: colorScheme.error,
+        child: Icon(Icons.delete, color: colorScheme.onError),
+      ),
+      onDismissed: (_) => dao.deleteEntry(entry.id),
+      child: InkWell(
+        onTap: () => _editEntry(context, entry, dao),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(entry.entryKey, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text(entry.entryValue, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(entry.entryKey, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(entry.entryValue, style: TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant)),
+                      const SizedBox(width: 4),
+                      Icon(Icons.edit, size: 12, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                    ],
+                  ),
+                ],
+              ),
+              if (progress != null) ...[
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    backgroundColor: barColor.withValues(alpha: 0.15),
+                    valueColor: AlwaysStoppedAnimation(barColor),
+                  ),
+                ),
+              ],
             ],
           ),
-          if (progress != null) ...[
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: barColor.withValues(alpha: 0.15),
-                valueColor: AlwaysStoppedAnimation(barColor),
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -459,44 +555,139 @@ class _ResourceTile extends StatelessWidget {
   }
 }
 
-class _StatChip extends StatelessWidget {
+class _EditableStatChip extends StatelessWidget {
   final CharacterSheetEntry entry;
-  const _StatChip({required this.entry});
+  final dynamic dao;
+  const _EditableStatChip({required this.entry, required this.dao});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          Text(entry.entryKey, style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 2),
-          Text(entry.entryValue, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.primary)),
-        ],
+    return GestureDetector(
+      onTap: () => _editEntry(context, entry, dao),
+      onLongPress: () => _confirmDeleteEntry(context, entry, dao),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Column(
+          children: [
+            Text(entry.entryKey, style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            Text(entry.entryValue, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.primary)),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _EntryTile extends StatelessWidget {
+class _EditableEntryTile extends StatelessWidget {
   final CharacterSheetEntry entry;
   final dynamic dao;
-  const _EntryTile({required this.entry, required this.dao});
+  const _EditableEntryTile({required this.entry, required this.dao});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      title: Text(entry.entryKey),
-      trailing: Text(entry.entryValue, style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600)),
+    return Dismissible(
+      key: ValueKey(entry.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        color: colorScheme.error,
+        child: Icon(Icons.delete, color: colorScheme.onError),
+      ),
+      onDismissed: (_) => dao.deleteEntry(entry.id),
+      child: ListTile(
+        dense: true,
+        contentPadding: EdgeInsets.zero,
+        title: Text(entry.entryKey),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(entry.entryValue, style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.w600)),
+            const SizedBox(width: 4),
+            Icon(Icons.edit, size: 14, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+          ],
+        ),
+        onTap: () => _editEntry(context, entry, dao),
+      ),
     );
   }
+}
+
+void _editEntry(BuildContext context, CharacterSheetEntry entry, dynamic dao) {
+  final keyCtrl = TextEditingController(text: entry.entryKey);
+  final valueCtrl = TextEditingController(text: entry.entryValue);
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Edit Entry'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: keyCtrl,
+            decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: valueCtrl,
+            decoration: const InputDecoration(labelText: 'Value', border: OutlineInputBorder()),
+            autofocus: true,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            _confirmDeleteEntry(context, entry, dao);
+          },
+          child: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ),
+        const Spacer(),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: () {
+            if (keyCtrl.text.trim().isEmpty) return;
+            Navigator.pop(ctx);
+            dao.upsertEntry(entry.sheetId, entry.category, keyCtrl.text.trim(), valueCtrl.text.trim());
+            // If key changed, delete the old entry
+            if (keyCtrl.text.trim() != entry.entryKey) {
+              dao.deleteEntry(entry.id);
+            }
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    ),
+  );
+}
+
+void _confirmDeleteEntry(BuildContext context, CharacterSheetEntry entry, dynamic dao) {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Delete Entry?'),
+      content: Text('Remove "${entry.entryKey}" from this sheet?'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+          onPressed: () {
+            Navigator.pop(ctx);
+            dao.deleteEntry(entry.id);
+          },
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
 }
