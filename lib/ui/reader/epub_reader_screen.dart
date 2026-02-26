@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -60,10 +61,12 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   bool _autoScrollActive = false;
   double _autoScrollSpeed = 1.5; // pixels per tick (50ms interval)
   Timer? _autoScrollTimer;
+  OverlayEntry? _autoScrollOverlay;
 
   @override
   void initState() {
     super.initState();
+    WakelockPlus.enable();
     _loadEpub();
   }
 
@@ -73,7 +76,10 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
     _toolbarOverlay = null;
     _saveTimer?.cancel();
     _stopAutoScroll();
+    _autoScrollOverlay?.remove();
+    _autoScrollOverlay = null;
     _savePosition();
+    WakelockPlus.disable();
     super.dispose();
   }
 
@@ -348,11 +354,14 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
         source: 'window.scrollBy(0, $_autoScrollSpeed);',
       );
     });
+    _showAutoScrollOverlay();
   }
 
   void _stopAutoScroll() {
     _autoScrollTimer?.cancel();
     _autoScrollTimer = null;
+    _autoScrollOverlay?.remove();
+    _autoScrollOverlay = null;
     if (_autoScrollActive && mounted) {
       setState(() => _autoScrollActive = false);
     }
@@ -360,9 +369,91 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
   }
 
   void _adjustAutoScrollSpeed(double delta) {
-    setState(() {
-      _autoScrollSpeed = (_autoScrollSpeed + delta).clamp(0.3, 8.0);
-    });
+    _autoScrollSpeed = (_autoScrollSpeed + delta).clamp(0.3, 8.0);
+    // Rebuild the overlay to show updated speed
+    _autoScrollOverlay?.markNeedsBuild();
+  }
+
+  void _showAutoScrollOverlay() {
+    _autoScrollOverlay?.remove();
+    final bgColor = _scaffoldBgColor();
+    final fgColor = _scaffoldFgColor();
+    final fgDim = fgColor.withValues(alpha: 0.5);
+
+    _autoScrollOverlay = OverlayEntry(
+      builder: (_) => Positioned(
+        bottom: 24 + MediaQuery.of(context).padding.bottom,
+        left: 0,
+        right: 0,
+        child: Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: bgColor.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: fgColor.withValues(alpha: 0.2)),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.speed, size: 18, color: fgDim),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _adjustAutoScrollSpeed(-0.3),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: fgColor.withValues(alpha: 0.1),
+                      ),
+                      child: Icon(Icons.remove, size: 18, color: fgColor),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      '${_autoScrollSpeed.toStringAsFixed(1)}x',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fgColor),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => _adjustAutoScrollSpeed(0.3),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: fgColor.withValues(alpha: 0.1),
+                      ),
+                      child: Icon(Icons.add, size: 18, color: fgColor),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  InkWell(
+                    onTap: _stopAutoScroll,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.red.withValues(alpha: 0.15),
+                      ),
+                      child: const Icon(Icons.close, size: 18, color: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_autoScrollOverlay!);
   }
 
   // --- Highlight support ---
@@ -1235,80 +1326,11 @@ class _EpubReaderScreenState extends ConsumerState<EpubReaderScreen> {
           if (_tocOpen) _buildTocDrawer(colorScheme),
           // Bookmarks overlay
           if (_bookmarksOpen) _buildBookmarksDrawer(colorScheme),
-          // Auto-scroll speed overlay
-          if (_autoScrollActive) _buildAutoScrollOverlay(bgColor, fgColor, fgDim),
         ],
       ),
       bottomNavigationBar: _immersive
           ? null
           : _buildBottomBar(bgColor, fgColor, fgDim, chapterTitle, bookProgress),
-    );
-  }
-
-  Widget _buildAutoScrollOverlay(Color bgColor, Color fgColor, Color fgDim) {
-    return Positioned(
-      bottom: 24,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: bgColor.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: fgColor.withValues(alpha: 0.2)),
-            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.speed, size: 18, color: fgDim),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => _adjustAutoScrollSpeed(-0.3),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: fgColor.withValues(alpha: 0.1),
-                  ),
-                  child: Icon(Icons.remove, size: 18, color: fgColor),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  '${_autoScrollSpeed.toStringAsFixed(1)}x',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: fgColor),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _adjustAutoScrollSpeed(0.3),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: fgColor.withValues(alpha: 0.1),
-                  ),
-                  child: Icon(Icons.add, size: 18, color: fgColor),
-                ),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: _stopAutoScroll,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.red.withValues(alpha: 0.15),
-                  ),
-                  child: const Icon(Icons.close, size: 18, color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
