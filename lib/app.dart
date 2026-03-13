@@ -14,6 +14,7 @@ import 'ui/reader/epub_reader_screen.dart';
 import 'ui/character_sheet/character_sheet_screen.dart';
 import 'ui/mindmap/extraction_wizard.dart';
 import 'ui/settings/sync_settings_screen.dart';
+import 'ui/settings/moonreader_import_screen.dart';
 
 CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
   return CustomTransitionPage(
@@ -132,6 +133,12 @@ final _router = GoRouter(
       name: 'syncSettings',
       pageBuilder: (context, state) =>
           _buildPage(const SyncSettingsScreen(), state),
+    ),
+    GoRoute(
+      path: '/settings/moonreader-import',
+      name: 'moonreaderImport',
+      pageBuilder: (context, state) =>
+          _buildPage(const MoonReaderImportScreen(), state),
     ),
   ],
 );

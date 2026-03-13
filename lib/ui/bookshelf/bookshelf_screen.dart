@@ -86,6 +86,27 @@ class _BookshelfScreenState extends ConsumerState<BookshelfScreen> {
             tooltip: 'Cloud Sync',
             onPressed: () => context.pushNamed('syncSettings'),
           ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More',
+            onSelected: (v) {
+              if (v == 'moonreader') {
+                context.pushNamed('moonreaderImport');
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'moonreader',
+                child: Row(
+                  children: [
+                    Icon(Icons.import_export, size: 20),
+                    SizedBox(width: 8),
+                    Text('Import Moon+ Reader'),
+                  ],
+                ),
+              ),
+            ],
+          ),
           PopupMenuButton<SortOption>(
             icon: const Icon(Icons.sort),
             tooltip: 'Sort',
