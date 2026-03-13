@@ -1,0 +1,8 @@
+ollama>=0.4.0
+ebooklib>=0.18
+beautifulsoup4>=4.12.0
+PyGithub>=2.5.0
+rich>=13.9.0
+textual>=1.0.0
+pyyaml>=6.0.0
+requests>=2.32.0

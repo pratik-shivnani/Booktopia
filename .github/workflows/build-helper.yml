@@ -1,0 +1,47 @@
+name: Build Helper Agent
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'helper_agent/**' ]
+    tags: [ 'helper-v*' ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: helper_agent/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install -r helper_agent/requirements.txt
+          pip install pyinstaller
+
+      - name: Build exe
+        run: |
+          cd helper_agent
+          pyinstaller --clean booktopia_helper.spec
+
+      - name: Upload exe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: booktopia-helper
+          path: helper_agent/dist/booktopia-helper.exe
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: helper_agent/dist/booktopia-helper.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

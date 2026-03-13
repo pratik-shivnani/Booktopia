@@ -1,0 +1,12 @@
+# Booktopia Helper Agent Configuration
+# Copy this file to config.yaml and fill in your values.
+
+github:
+  pat: "ghp_your_personal_access_token_here"
+  owner: "your-github-username"
+  data_repo: "booktopia-data"
+  source_repo: "booktopia"  # for auto-update checks
+
+ollama:
+  model: "llama3.1"
+  host: "http://localhost:11434"
