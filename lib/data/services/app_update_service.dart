@@ -17,7 +17,7 @@ class AppUpdateService {
   static const _sourceRepo = 'Booktopia';
 
   /// Current app version — keep in sync with pubspec.yaml.
-  static const currentVersion = '0.3.0';
+  static const currentVersion = '0.3.1';
 
   final FlutterSecureStorage _storage;
 
