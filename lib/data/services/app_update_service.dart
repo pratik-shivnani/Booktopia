@@ -13,7 +13,7 @@ class AppUpdateService {
   static const _apiBase = 'https://api.github.com';
 
   /// The source repo name (where APK releases are published).
-  static const _sourceRepo = 'booktopia';
+  static const _sourceRepo = 'Booktopia';
 
   /// Current app version — keep in sync with pubspec.yaml.
   static const currentVersion = '0.1.0';
