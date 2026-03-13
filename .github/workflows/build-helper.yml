@@ -6,12 +6,15 @@ on:
     paths: [ 'helper_agent/**' ]
     tags: [ 'helper-v*' ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,6 +35,8 @@ jobs:
 
       - name: Upload exe artifact
         uses: actions/upload-artifact@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           name: booktopia-helper
           path: helper_agent/dist/booktopia-helper.exe
