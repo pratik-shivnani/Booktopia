@@ -21,6 +21,9 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
   bool _syncing = false;
   bool _obscurePat = true;
   bool _checkingUpdate = false;
+  bool _downloading = false;
+  double _downloadProgress = 0;
+  String? _downloadedApkPath;
   String? _connectionStatus;
   DateTime? _lastSync;
   ReleaseInfo? _updateInfo;
@@ -170,6 +173,59 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
           SnackBar(content: Text('Update check failed: $e')),
         );
       }
+    }
+  }
+
+  Future<void> _downloadAndInstall() async {
+    if (_updateInfo == null) return;
+    setState(() {
+      _downloading = true;
+      _downloadProgress = 0;
+      _downloadedApkPath = null;
+    });
+
+    try {
+      final updateService = ref.read(appUpdateServiceProvider);
+      final path = await updateService.downloadApk(
+        _updateInfo!,
+        onProgress: (progress) {
+          if (mounted) setState(() => _downloadProgress = progress);
+        },
+      );
+
+      if (mounted) {
+        setState(() {
+          _downloading = false;
+          _downloadedApkPath = path;
+        });
+
+        if (path != null) {
+          // Auto-trigger install
+          _installApk();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Download failed — check your connection and PAT')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _downloading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _installApk() async {
+    if (_downloadedApkPath == null) return;
+
+    final success = await AppUpdateService.installApk(_downloadedApkPath!);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not launch installer. Check app install permissions in Settings.')),
+      );
     }
   }
 
@@ -437,15 +493,59 @@ class _SyncSettingsScreenState extends ConsumerState<SyncSettingsScreen> {
                               style: textTheme.bodySmall,
                             ),
                           ],
+                          if (_updateInfo!.apkSize != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Size: ${(_updateInfo!.apkSize! / 1024 / 1024).toStringAsFixed(1)} MB',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    if (_downloading) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: _downloadProgress > 0 ? _downloadProgress : null,
+                          minHeight: 8,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _downloadProgress > 0
+                            ? 'Downloading... ${(_downloadProgress * 100).toStringAsFixed(0)}%'
+                            : 'Starting download...',
+                        style: textTheme.bodySmall,
+                      ),
+                    ] else if (_downloadedApkPath != null) ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _installApk,
+                          icon: const Icon(Icons.install_mobile),
+                          label: const Text('Install Update'),
+                        ),
+                      ),
+                    ] else ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: _downloadAndInstall,
+                          icon: const Icon(Icons.download),
+                          label: const Text('Download & Install'),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                   ],
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: _checkingUpdate ? null : _checkForUpdate,
+                      onPressed: (_checkingUpdate || _downloading) ? null : _checkForUpdate,
                       icon: const Icon(Icons.refresh),
                       label: const Text('Check for Updates'),
                     ),

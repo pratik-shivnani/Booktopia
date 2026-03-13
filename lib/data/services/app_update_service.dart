@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
@@ -16,7 +17,7 @@ class AppUpdateService {
   static const _sourceRepo = 'Booktopia';
 
   /// Current app version — keep in sync with pubspec.yaml.
-  static const currentVersion = '0.2.0';
+  static const currentVersion = '0.3.0';
 
   final FlutterSecureStorage _storage;
 
@@ -78,32 +79,64 @@ class AppUpdateService {
     }
   }
 
-  /// Download the APK from a release asset URL.
+  /// Download the APK from a release asset URL with progress reporting.
   /// Returns the local file path of the downloaded APK.
-  Future<String?> downloadApk(ReleaseInfo release) async {
+  Future<String?> downloadApk(
+    ReleaseInfo release, {
+    void Function(double progress)? onProgress,
+  }) async {
     if (release.apkDownloadUrl == null) return null;
 
     final pat = await _storage.read(key: _storageKeyPat);
     if (pat == null) return null;
 
     try {
-      // GitHub requires Accept: application/octet-stream for asset download
-      final response = await http.get(
-        Uri.parse(release.apkDownloadUrl!),
-        headers: {
-          'Authorization': 'Bearer $pat',
-          'Accept': 'application/octet-stream',
-        },
-      );
+      final client = HttpClient();
+      final request = await client.getUrl(Uri.parse(release.apkDownloadUrl!));
+      request.headers.set('Authorization', 'Bearer $pat');
+      request.headers.set('Accept', 'application/octet-stream');
 
-      if (response.statusCode != 200) return null;
+      final response = await request.close();
 
-      final dir = await getExternalStorageDirectory() ?? await getApplicationDocumentsDirectory();
-      final filePath = p.join(dir.path, release.apkName ?? 'booktopia-update.apk');
-      await File(filePath).writeAsBytes(response.bodyBytes);
+      // Follow redirects manually if needed (GitHub redirects asset downloads)
+      if (response.statusCode != 200) {
+        await response.drain();
+        return null;
+      }
+
+      final dir = await getExternalStorageDirectory() ??
+          await getApplicationDocumentsDirectory();
+      final filePath =
+          p.join(dir.path, release.apkName ?? 'booktopia-update.apk');
+
+      final totalBytes = response.contentLength;
+      int receivedBytes = 0;
+      final sink = File(filePath).openWrite();
+
+      await for (final chunk in response) {
+        sink.add(chunk);
+        receivedBytes += chunk.length;
+        if (totalBytes > 0 && onProgress != null) {
+          onProgress(receivedBytes / totalBytes);
+        }
+      }
+
+      await sink.close();
+      client.close();
       return filePath;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Trigger the Android package installer for a downloaded APK.
+  static Future<bool> installApk(String filePath) async {
+    try {
+      const channel = MethodChannel('com.booktopia.booktopia/installer');
+      await channel.invokeMethod('installApk', {'filePath': filePath});
+      return true;
+    } on PlatformException catch (_) {
+      return false;
     }
   }
 
