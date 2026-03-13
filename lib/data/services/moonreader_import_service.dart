@@ -382,7 +382,8 @@ class MoonReaderImportService {
       final filename = row['filename'] as String? ?? '';
       final coverFile = row['coverFile'] as String?;
       final title = row['book'] as String? ?? p.basenameWithoutExtension(filename);
-      final author = row['author'] as String? ?? '';
+      final rawAuthor = row['author'] as String? ?? '';
+      final author = rawAuthor.trim().isEmpty ? 'Unknown' : rawAuthor;
       final addTimeStr = row['addTime'] as String?;
 
       // Find EPUB tag by matching filename prefix
