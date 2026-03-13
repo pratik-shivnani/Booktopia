@@ -13,6 +13,7 @@ import 'ui/mindmap/mindmap_screen.dart';
 import 'ui/reader/epub_reader_screen.dart';
 import 'ui/character_sheet/character_sheet_screen.dart';
 import 'ui/mindmap/extraction_wizard.dart';
+import 'ui/settings/sync_settings_screen.dart';
 
 CustomTransitionPage<void> _buildPage(Widget child, GoRouterState state) {
   return CustomTransitionPage(
@@ -125,6 +126,12 @@ final _router = GoRouter(
         final id = int.parse(state.pathParameters['id']!);
         return _buildPage(ExtractionWizardScreen(bookId: id), state);
       },
+    ),
+    GoRoute(
+      path: '/settings/sync',
+      name: 'syncSettings',
+      pageBuilder: (context, state) =>
+          _buildPage(const SyncSettingsScreen(), state),
     ),
   ],
 );

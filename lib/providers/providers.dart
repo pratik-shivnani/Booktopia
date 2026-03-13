@@ -19,6 +19,9 @@ import '../data/repositories/book_image_repository.dart';
 import '../data/repositories/mindmap_repository.dart';
 import '../data/repositories/epub_repository.dart';
 import '../data/services/epub_service.dart';
+import '../data/services/app_update_service.dart';
+import '../data/services/github_sync_service.dart';
+import '../data/services/sync_serializer.dart';
 import '../domain/models/book.dart' as domain;
 import '../domain/models/character.dart' as domain_char;
 import '../domain/models/note.dart' as domain_note;
@@ -108,6 +111,19 @@ final epubRepositoryProvider = Provider<EpubRepository>((ref) {
 
 final epubServiceProvider = Provider<EpubService>((ref) {
   return EpubService();
+});
+
+// Sync
+final syncSerializerProvider = Provider<SyncSerializer>((ref) {
+  return SyncSerializer(ref.watch(databaseProvider));
+});
+
+final githubSyncServiceProvider = Provider<GitHubSyncService>((ref) {
+  return GitHubSyncService(ref.watch(databaseProvider));
+});
+
+final appUpdateServiceProvider = Provider<AppUpdateService>((ref) {
+  return AppUpdateService();
 });
 
 // Stream providers

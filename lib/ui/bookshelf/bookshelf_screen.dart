@@ -25,11 +25,48 @@ final _selectedStatusProvider = StateProvider<BookStatus?>((ref) => null);
 final _searchQueryProvider = StateProvider<String>((ref) => '');
 final _sortOptionProvider = StateProvider<SortOption>((ref) => SortOption.recentFirst);
 
-class BookshelfScreen extends ConsumerWidget {
+class BookshelfScreen extends ConsumerStatefulWidget {
   const BookshelfScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BookshelfScreen> createState() => _BookshelfScreenState();
+}
+
+class _BookshelfScreenState extends ConsumerState<BookshelfScreen> {
+  bool _autoSyncDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tryAutoSync();
+  }
+
+  Future<void> _tryAutoSync() async {
+    if (_autoSyncDone) return;
+    _autoSyncDone = true;
+
+    final syncService = ref.read(githubSyncServiceProvider);
+    final configured = await syncService.isConfigured;
+    if (!configured) return;
+
+    final autoSync = await syncService.autoSyncEnabled;
+    if (!autoSync) return;
+
+    // Pull in background — don't block the UI
+    try {
+      final applied = await syncService.pullPendingAgentUpdates();
+      if (applied > 0 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Applied $applied update(s) from helper agent')),
+        );
+      }
+    } catch (_) {
+      // Silently fail — user can manually sync
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedStatus = ref.watch(_selectedStatusProvider);
     final searchQuery = ref.watch(_searchQueryProvider);
     final sortOption = ref.watch(_sortOptionProvider);
@@ -44,6 +81,11 @@ class BookshelfScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Booktopia'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_sync),
+            tooltip: 'Cloud Sync',
+            onPressed: () => context.pushNamed('syncSettings'),
+          ),
           PopupMenuButton<SortOption>(
             icon: const Icon(Icons.sort),
             tooltip: 'Sort',

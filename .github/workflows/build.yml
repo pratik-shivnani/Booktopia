@@ -1,11 +1,13 @@
-name: Build Debug APK
+name: Build APK
 
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
 
 jobs:
-  build:
+  build-debug:
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
 
     steps:
@@ -35,3 +37,36 @@ jobs:
           name: debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
+
+  build-release:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
