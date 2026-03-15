@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -337,8 +338,9 @@ class GitHubSyncService {
         // Delete the processed file
         await _deleteFile('agent/pending_updates/$name');
         applied++;
-      } catch (e) {
-        // Skip malformed updates
+      } catch (e, stack) {
+        // Log but skip malformed updates
+        debugPrint('Failed to apply agent update $name: $e\n$stack');
         continue;
       }
     }
@@ -414,7 +416,7 @@ class GitHubSyncService {
       for (final entry in entries) {
         final category = entry['category'] as int? ?? 0;
         final key = entry['key'] as String;
-        final value = entry['value'] as String;
+        final value = entry['value']?.toString() ?? '';
 
         final existing = await ((_db.select(_db.characterSheetEntries))
               ..where((e) =>
