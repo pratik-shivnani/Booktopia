@@ -188,13 +188,19 @@ class GitHubSyncService {
       SyncSerializer.toJsonString(await _serializer.exportCharacterSheets(bookId)),
     );
 
-    // Push epub file metadata
+    // Push epub file metadata + binary
     final epubData = await _serializer.exportEpubFile(bookId);
     if (epubData != null) {
       await _putFile(
         '$prefix/epub_file.json',
         SyncSerializer.toJsonString(epubData),
       );
+
+      // Push the actual EPUB binary if the file exists on device
+      final localPath = epubData['filePath'] as String?;
+      if (localPath != null && await File(localPath).exists()) {
+        await pushEpub(bookId, localPath);
+      }
     }
   }
 
