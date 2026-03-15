@@ -47,3 +47,4 @@ doc/api/
 # Logs
 *.log*.mrpro
 flutter_01.log
+*.log

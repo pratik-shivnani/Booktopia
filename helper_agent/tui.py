@@ -33,12 +33,14 @@ from textual.widgets import (
     TabPane,
 )
 
+from logger import get_logger
 from config_manager import load_config, save_config, get_github_config, get_ollama_config, load_state, save_state
 from github_sync import GitHubSync
 from epub_reader import parse_epub
 from analyzer import BookAnalyzer, merge_analysis_results
 
 __version__ = "0.1.0"
+log = get_logger("booktopia.tui")
 
 
 # ─── CSS ──────────────────────────────────────────────────────────────
@@ -610,8 +612,11 @@ class SettingsPanel(Static):
 
 def run_tui():
     """Launch the Textual TUI."""
+    log.info("Creating BooktopiaAgent app instance")
     app = BooktopiaAgent()
+    log.info("Calling app.run()")
     app.run()
+    log.info("TUI exited normally")
 
 
 if __name__ == "__main__":

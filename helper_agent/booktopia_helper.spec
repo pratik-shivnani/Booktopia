@@ -15,6 +15,7 @@ a = Analysis(
     ],
     hiddenimports=[
         'tui',
+        'logger',
         'analyzer',
         'epub_reader',
         'github_sync',

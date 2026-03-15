@@ -7,8 +7,10 @@ Android app via a shared GitHub repo.
 
 import sys
 import argparse
+import traceback
 from pathlib import Path
 
+from logger import setup_logging, get_logger
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -315,6 +317,9 @@ def cmd_update(config: dict):
 # ─── Main ─────────────────────────────────────────────────────────────
 
 def main():
+    log = setup_logging()
+    log.info("CLI args: %s", sys.argv[1:])
+
     parser = argparse.ArgumentParser(
         description="Booktopia Helper Agent — Analyze EPUBs with Ollama",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -349,8 +354,13 @@ def main():
 
     if not args.command:
         # Default to TUI when no command is given
-        from tui import run_tui
-        run_tui()
+        log.info("No command given, launching TUI")
+        try:
+            from tui import run_tui
+            run_tui()
+        except Exception:
+            log.critical("TUI crashed:\n%s", traceback.format_exc())
+            raise
         return
 
     config = load_config()
@@ -363,9 +373,15 @@ def main():
             cmd_config_wizard(config)
             config = load_config()
 
+    log.info("Dispatching command: %s", args.command)
+
     if args.command == "ui":
-        from tui import run_tui
-        run_tui()
+        try:
+            from tui import run_tui
+            run_tui()
+        except Exception:
+            log.critical("TUI crashed:\n%s", traceback.format_exc())
+            raise
     elif args.command == "status":
         cmd_status(config)
     elif args.command == "analyze":
@@ -379,4 +395,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        log = get_logger()
+        log.critical("Unhandled exception:\n%s", traceback.format_exc())
+        raise
