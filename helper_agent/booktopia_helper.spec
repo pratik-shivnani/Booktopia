@@ -4,6 +4,8 @@
 Produces a single booktopia-helper.exe that launches the TUI on double-click.
 """
 
+from PyInstaller.utils.hooks import collect_submodules
+
 a = Analysis(
     ['main.py'],
     pathex=[],
@@ -17,19 +19,13 @@ a = Analysis(
         'epub_reader',
         'github_sync',
         'config_manager',
-        'textual',
-        'textual.app',
-        'textual.widgets',
-        'textual.screen',
-        'textual.css',
-        'rich',
         'ollama',
         'ebooklib',
         'ebooklib.epub',
         'bs4',
         'github',
         'yaml',
-    ],
+    ] + collect_submodules('textual') + collect_submodules('rich'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
