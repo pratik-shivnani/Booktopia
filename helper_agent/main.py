@@ -179,22 +179,24 @@ def cmd_analyze(config: dict, book_query: str, chapter: int | None = None, all_c
             console.print("[green]All chapters already analyzed![/green] Use --all to re-analyze.")
             return
 
-    console.print(f"  Analyzing {len(chapters_to_analyze)} chapter(s)...")
+    console.print(f"  Analyzing {len(chapters_to_analyze)} chapter(s) (parallel)...")
 
-    # Analyze each chapter
-    results = []
+    # Analyze chapters in parallel with progress
+    completed = 0
+    total = len(chapters_to_analyze)
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task("", total=len(chapters_to_analyze))
+        task = progress.add_task("Analyzing...", total=total)
 
-        for ch in chapters_to_analyze:
-            progress.update(task, description=f"Analyzing: {ch.title}")
-            result = analyzer.analyze_chapter(ch)
-            results.append(result)
-
+        def on_result(result):
+            nonlocal completed
+            completed += 1
+            progress.update(task, completed=completed,
+                            description=f"Done {completed}/{total}")
             if result.has_data():
                 sheets_count = len(result.character_sheets)
                 areas_count = len(result.world_areas)
@@ -203,9 +205,13 @@ def cmd_analyze(config: dict, book_query: str, chapter: int | None = None, all_c
                     parts.append(f"{sheets_count} sheet(s)")
                 if areas_count:
                     parts.append(f"{areas_count} area(s)")
-                console.print(f"    Ch.{ch.index} [{ch.title}]: {', '.join(parts)}")
+                console.print(f"    Ch.{result.chapter_index} [{result.chapter_title}]: {', '.join(parts)}")
 
-            progress.advance(task)
+        results = analyzer.analyze_chapters_parallel(
+            chapters_to_analyze,
+            max_workers=2,
+            on_result=on_result,
+        )
 
     if not results:
         console.print("[yellow]No data extracted.[/yellow]")

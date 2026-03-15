@@ -1,10 +1,27 @@
 """Ollama-powered analysis engine for extracting character stats and world areas."""
 
 import json
+import re
 import ollama
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional
 
+from logger import get_logger
 from epub_reader import EpubChapter
+
+log = get_logger("booktopia.analyzer")
+
+# Quick regex pre-filter: skip chapters that clearly have no game stats
+_STAT_HINTS = re.compile(
+    r'\b(?:'
+    r'lv\.?|lvl\.?|level\s*\d|'
+    r'str|dex|int|wis|con|cha|agi|vit|'
+    r'hp|mp|sp|mana|health|stamina|'
+    r'skill|ability|class:|race:|title:|'
+    r'stat|attribute|\+\d+|\d+/\d+'
+    r')\b',
+    re.IGNORECASE,
+)
 
 
 # ─── Prompt Templates ────────────────────────────────────────────────
@@ -12,31 +29,19 @@ from epub_reader import EpubChapter
 SYSTEM_PROMPT = """You are a precise literary analysis assistant for LitRPG and fantasy novels.
 You extract structured data from chapter text. Always respond with valid JSON only, no markdown, no explanation."""
 
-CHARACTER_SHEET_PROMPT = """Analyze the following chapter text and extract ALL character stat blocks, skill updates, level changes, and class information.
+# Combined prompt — single LLM call per chapter instead of 3
+COMBINED_PROMPT = """Extract the following from this chapter text:
 
-For each character mentioned with stats, extract:
-- name: The character's name
-- level: Their current level (integer or null)
-- className: Their class/job (string or null)
-- entries: Array of stat entries, each with:
-  - category: 0=core_stats, 1=skills, 2=resources, 3=abilities, 4=misc
-  - key: The stat/skill name
-  - value: The stat/skill value as a string
-
-Look for:
-- Stat blocks (STR, DEX, INT, WIS, CON, etc.)
-- Skills with levels (e.g. "Dark Bolt Lv. 8")
-- Resources (HP, MP, SP, Mana, Health, Stamina)
-- Level ups and class changes
-- New abilities or skill acquisitions
-- Race, title, or other attributes
+1. CHARACTER STATS: Any stat blocks, skill updates, level changes, class info.
+2. LOCATIONS: Named places, cities, dungeons, regions.
+3. SUMMARY: 1-2 sentence chapter summary.
 
 Chapter text:
 ---
 {chapter_text}
 ---
 
-Respond with JSON:
+Respond with JSON only:
 {{
   "character_sheets": [
     {{
@@ -49,48 +54,33 @@ Respond with JSON:
         {{"category": 2, "key": "HP", "value": "1250/1250"}}
       ]
     }}
-  ]
+  ],
+  "world_areas": [
+    {{"name": "Ashenmoor", "description": "A cursed forest east of the capital."}}
+  ],
+  "summary": "Brief chapter summary."
 }}
 
-If no character stats are found, return: {{"character_sheets": []}}"""
+Categories: 0=core_stats, 1=skills, 2=resources, 3=abilities, 4=misc.
+Return empty arrays if nothing found."""
 
-WORLD_AREA_PROMPT = """Analyze the following chapter text and extract all locations, areas, regions, cities, dungeons, or other named places.
-
-For each location, extract:
-- name: The location name
-- description: A brief description based on context in the text (1-2 sentences)
+# Lightweight prompt for chapters with no stat hints — skip character sheets
+LIGHT_PROMPT = """Extract locations and a 1-sentence summary from this chapter.
 
 Chapter text:
 ---
 {chapter_text}
 ---
 
-Respond with JSON:
+Respond with JSON only:
 {{
   "world_areas": [
-    {{
-      "name": "Ashenmoor",
-      "description": "A cursed forest east of the capital, filled with undead creatures."
-    }}
-  ]
+    {{"name": "PlaceName", "description": "Brief description."}}
+  ],
+  "summary": "Brief chapter summary."
 }}
 
-If no locations are found, return: {{"world_areas": []}}"""
-
-CHAPTER_SUMMARY_PROMPT = """Provide a brief 2-3 sentence summary of this chapter, focusing on:
-- Key plot events
-- Character developments
-- Notable location changes
-
-Chapter text:
----
-{chapter_text}
----
-
-Respond with JSON:
-{{
-  "summary": "Brief chapter summary here."
-}}"""
+Return empty arrays if nothing found."""
 
 
 # ─── Analyzer Class ──────────────────────────────────────────────────
@@ -132,6 +122,9 @@ class BookAnalyzer:
         self.model = model
         self.host = host
         self._client = ollama.Client(host=host)
+        # Smaller models choke on long context — adapt truncation
+        self._max_chapter_chars = 6000 if "3b" in model or "1b" in model else 12000
+        log.info("Analyzer init: model=%s, max_chars=%d", model, self._max_chapter_chars)
 
     def test_connection(self) -> tuple[bool, str]:
         """Test connection to Ollama. Returns (success, message)."""
@@ -160,32 +153,31 @@ class BookAnalyzer:
     ) -> AnalysisResult:
         """Analyze a single chapter for character stats and world areas.
 
-        Args:
-            chapter: The chapter to analyze.
-            extract_sheets: Whether to extract character stat sheets.
-            extract_areas: Whether to extract world areas.
-            extract_summary: Whether to generate a chapter summary.
-
-        Returns:
-            AnalysisResult with extracted data.
+        Uses a single combined LLM call. Pre-filters chapters without
+        stat-like content to use a lighter prompt (skips sheet extraction).
         """
-        # Truncate very long chapters to avoid context overflow
         text = chapter.plain_text
-        if len(text) > 12000:
-            text = text[:12000] + "\n\n[... text truncated for analysis ...]"
 
-        sheets = []
-        areas = []
-        summary = ""
+        # Truncate for smaller models — 6K chars ≈ 2K tokens
+        max_chars = self._max_chapter_chars
+        if len(text) > max_chars:
+            text = text[:max_chars] + "\n\n[... truncated ...]"
 
-        if extract_sheets:
-            sheets = self._extract_character_sheets(text)
+        # Pre-filter: does this chapter likely contain game stats?
+        has_stats = bool(_STAT_HINTS.search(text))
 
-        if extract_areas:
-            areas = self._extract_world_areas(text)
+        if has_stats and extract_sheets:
+            log.debug("Ch.%d '%s': full analysis (stat hints found)", chapter.index, chapter.title)
+            prompt = COMBINED_PROMPT.format(chapter_text=text)
+        else:
+            log.debug("Ch.%d '%s': light analysis (no stat hints)", chapter.index, chapter.title)
+            prompt = LIGHT_PROMPT.format(chapter_text=text)
 
-        if extract_summary:
-            summary = self._extract_summary(text)
+        result = self._query_ollama(prompt)
+
+        sheets = result.get("character_sheets", []) if result else []
+        areas = result.get("world_areas", []) if result else []
+        summary = result.get("summary", "") if result else ""
 
         return AnalysisResult(
             chapter_index=chapter.index,
@@ -195,29 +187,41 @@ class BookAnalyzer:
             summary=summary,
         )
 
-    def _extract_character_sheets(self, text: str) -> list[dict]:
-        """Extract character stat sheets from chapter text."""
-        prompt = CHARACTER_SHEET_PROMPT.format(chapter_text=text)
-        result = self._query_ollama(prompt)
-        if result and "character_sheets" in result:
-            return result["character_sheets"]
-        return []
+    def analyze_chapters_parallel(
+        self,
+        chapters: list[EpubChapter],
+        max_workers: int = 2,
+        on_result=None,
+    ) -> list[AnalysisResult]:
+        """Analyze multiple chapters concurrently.
 
-    def _extract_world_areas(self, text: str) -> list[dict]:
-        """Extract world areas from chapter text."""
-        prompt = WORLD_AREA_PROMPT.format(chapter_text=text)
-        result = self._query_ollama(prompt)
-        if result and "world_areas" in result:
-            return result["world_areas"]
-        return []
+        Args:
+            chapters: Chapters to analyze.
+            max_workers: Concurrent Ollama requests (2 is safe for most GPUs).
+            on_result: Optional callback(AnalysisResult) for progress.
 
-    def _extract_summary(self, text: str) -> str:
-        """Generate a chapter summary."""
-        prompt = CHAPTER_SUMMARY_PROMPT.format(chapter_text=text)
-        result = self._query_ollama(prompt)
-        if result and "summary" in result:
-            return result["summary"]
-        return ""
+        Returns:
+            List of AnalysisResult in chapter order.
+        """
+        results: dict[int, AnalysisResult] = {}
+        log.info("Analyzing %d chapters with %d workers", len(chapters), max_workers)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {
+                pool.submit(self.analyze_chapter, ch): ch.index
+                for ch in chapters
+            }
+            for future in as_completed(futures):
+                idx = futures[future]
+                try:
+                    result = future.result()
+                    results[idx] = result
+                    if on_result:
+                        on_result(result)
+                except Exception as e:
+                    log.error("Chapter %d failed: %s", idx, e)
+
+        return [results[i] for i in sorted(results)]
 
     def _query_ollama(self, user_prompt: str) -> Optional[dict]:
         """Send a prompt to Ollama and parse JSON response."""
