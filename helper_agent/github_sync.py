@@ -11,7 +11,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from logger import get_logger
 from github import Github, GithubException
+
+log = get_logger("booktopia.github_sync")
 
 
 class GitHubSync:
@@ -95,17 +98,34 @@ class GitHubSync:
         Returns:
             Path to the downloaded EPUB, or None if not found.
         """
+        remote_path = f"epubs/book_{book_id}.epub"
+        log.info("Downloading EPUB: %s", remote_path)
+
         try:
-            file_content = self.data_repo.get_contents(f"epubs/book_{book_id}.epub")
-            epub_bytes = base64.b64decode(file_content.content)
+            file_content = self.data_repo.get_contents(remote_path)
 
             if dest_dir is None:
                 dest_dir = tempfile.mkdtemp(prefix="booktopia_")
-
             dest_path = Path(dest_dir) / f"book_{book_id}.epub"
+
+            # For files >1MB, GitHub Contents API returns content=None.
+            # Use Git Blobs API as fallback (works for any size, private repos).
+            if file_content.content:
+                log.info("Decoding base64 content (%d chars)", len(file_content.content))
+                epub_bytes = base64.b64decode(file_content.content)
+            else:
+                log.info("Content is None (file >1MB), using Git Blobs API (SHA: %s)", file_content.sha)
+                blob = self.data_repo.get_git_blob(file_content.sha)
+                epub_bytes = base64.b64decode(blob.content)
+
+            log.info("Downloaded %d bytes, saving to %s", len(epub_bytes), dest_path)
             dest_path.write_bytes(epub_bytes)
             return str(dest_path)
-        except GithubException:
+        except GithubException as e:
+            log.error("GitHub error downloading EPUB: %s", e)
+            return None
+        except Exception as e:
+            log.error("Error downloading EPUB: %s", e)
             return None
 
     # ─── Write operations (pending updates) ───────────────────────────
